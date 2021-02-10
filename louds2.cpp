@@ -16,6 +16,9 @@ char *s_labels;
 int nodes_total;
 int nodes_dense;
 int nodes_sparse;
+int nodes_dense_parent;
+
+int split_level = 3;
 
 struct TrieNode
 {
@@ -32,7 +35,7 @@ uint32_t select1 (int* bs, int n){
         if (bs[i] == 1) count++;
         if (count == n) break;
     }
-    printf ("select1 (%d) = %d\n", n, i);
+    //printf ("select = %d\n", i);
     return i;
 }
 
@@ -151,34 +154,55 @@ void convert (TrieNode* node){
     std::vector<TrieNode*> search;
     search.push_back (node);
 
-    int sparse_count = 0;
     int parent_count = 0;
     bool louds = false;
+    bool node_count = false;
+
+    TrieNode* current = NULL;
 
     while (!search.empty()){
         louds = false;
+        node_count = false;
         for (int i = 0; i < ALPHABET_SIZE; i++){
-            if (search[0]->children[i] != NULL) {
-                d_labels[(parent_count * ALPHABET_SIZE) + i] = 1;
-                s_labels[sparse_count] = i;
-                if (search[0]->children[i]->parent) {
-                    d_haschild [(parent_count * ALPHABET_SIZE) + i] = 1;
-                    s_haschild[sparse_count] = 1;
-                }
-                if (search[0]->children[i]->isEndOfWord) d_isprefixkey [(parent_count * ALPHABET_SIZE) + i] = 1;
+            current = search[0]->children[i];
+            if (current != NULL) {
+                if (current->level <= split_level){
+                    if (!node_count){
+                        node_count = true;
+                        nodes_total++;
+                        nodes_dense++;
+                    }
+                    d_labels[(parent_count * ALPHABET_SIZE) + i] = 1;
+                    if (current->parent) {
+                        d_haschild [(parent_count * ALPHABET_SIZE) + i] = 1;
+                        nodes_dense_parent++;
+                    }
+                    if (current->isEndOfWord) d_isprefixkey [(parent_count * ALPHABET_SIZE) + i] = 1;
+                } else {
+                    if (!node_count){
+                        node_count = true;
+                        nodes_total++;
+                        nodes_sparse++;
+                    }
+                    s_labels[nodes_sparse] = i;
+                    if (current->parent) {
+                        s_haschild[nodes_sparse] = 1;
+                    }
 
-                if (!louds){
-                    s_louds[sparse_count] = 1;
-                    louds = true;
+                    if (!louds){
+                        s_louds[nodes_sparse] = 1;
+                        louds = true;
+                    }
                 }
                 
-                search.push_back (search[0]->children[i]);
-                sparse_count++;
+                search.push_back (current);
             }
         }
         if (search[0]->parent) parent_count++;
         search.erase (search.begin(), search.begin()+1);
     }
+
+    printf ("Nodes: %d\nDense: %d\nDense parents: %d\nSparse: %d\n", nodes_total, nodes_dense, nodes_dense_parent, nodes_sparse);
 }
 
 void printDense() {
@@ -199,21 +223,36 @@ void printSparse() {
 
 int lookupDense (std::string string){
     int i = 0, pos = 0, child = 0;
-    for (i = 0; i < string.length(); i++){
+    int limit = (split_level < string.length() ? split_level : string.length());
+
+    int max_level_pos = ALPHABET_SIZE;
+    int max_level_pos_hc = 0;
+
+    int pos_hc = 0;
+    int node = 0;
+
+    for (i = 0; i < limit; i++){
         pos = child + string[i];
         if (d_labels[pos] == 0) return -1;
-        child = 256 * rank1(d_haschild, pos); //para a próxima iteração
+        pos_hc = rank1 (d_haschild, pos);
+        child = ALPHABET_SIZE * pos_hc; //para a próxima iteração
+
+        node = pos_hc - max_level_pos_hc;
+        
+        max_level_pos_hc = rank1 (d_haschild, max_level_pos);
+        max_level_pos = ALPHABET_SIZE + (rank1 (d_haschild, max_level_pos) * ALPHABET_SIZE);
     }
-    if (i == string.length() && d_isprefixkey[pos] == 1) return 1;
-    else if (i < string.length()) return 1;
+    if (i == string.length() && d_isprefixkey[pos] == 1) return 0;
+    else if (i == split_level) return node;
     return -1;
 }
 
-int lookupSparse (std::string string){
-    int i = 0, pos = 0;
+int lookupSparse (std::string string, int dense){
+    int i = 0, pos = select1 (s_louds, dense);
     bool found = false;
     for (int i = 0; i < string.length(); i++){
         do {
+            //printf ("string = %c, s_labels[%d] = %c\n", string[i], pos, s_labels[pos]);
             if (string[i] == s_labels[pos]) {
                 found = true;
                 break;
@@ -222,12 +261,11 @@ int lookupSparse (std::string string){
                 found = false;
             }
         } while (s_louds[pos] == 0);
-        printf ("S-Labels[%d] = %c, S-HasChild[%d] = %u, S-LOUDS[%d] = %u\n", pos, s_labels[pos], pos, s_haschild[pos], pos, s_louds[pos]);
+        //printf ("S-Labels[%d] = %c, S-HasChild[%d] = %u, S-LOUDS[%d] = %u\n", pos, s_labels[pos], pos, s_haschild[pos], pos, s_louds[pos]);
         if (!found) return -1;
-        else pos = select1 (s_louds, rank1 (s_haschild, pos) + 1);
+        else pos = select1 (s_louds, (rank1 (s_haschild, pos) + nodes_dense_parent) + 1 - nodes_dense);
     }
-
-    return 1;
+    return 0;
 }
 
 void keyboardInput() {
@@ -239,10 +277,15 @@ void keyboardInput() {
         std::cin >> input;
         if (input.compare ("") && input.compare (end)) {
             result = lookupDense (input);
-            
-            if (result > 0) std::cout << "YES";
-            else std::cout << "NO";
-            printf ("\n");
+            //printf ("result = %d\n", result);
+            if (result == 0) {
+                std::cout << "YES";
+            } else if (result > 0) {
+                result = lookupSparse (input.substr (split_level, input.length()), result);
+                if (result == 0) std::cout << "YES";
+                else std::cout << "NO";
+            } else std::cout << "NO";
+            std::cout << "\n";
         }
     }
 }
@@ -276,5 +319,8 @@ int main(int argc, char **argv) {
     convert (root);
     printDense();
     printSparse();
+
+    printf ("Há %d nós no Dense e %d no Sparse.\n", nodes_dense, nodes_sparse);
+
     keyboardInput();
 }
