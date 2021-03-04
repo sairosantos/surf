@@ -12,8 +12,9 @@
 int *d_labels, *d_haschild, *d_isprefixkey, *d_values, *s_haschild, *s_louds, *s_values;
 char *s_labels;
 
-int dense_chars;
 int sparse_chars;
+int dense_parents;
+int dense_chars;
 int dense_nodes;
 int max_level;
 int seed;
@@ -46,10 +47,10 @@ int shift_add_xor (std::string input){
     return h & 0b1111111;
 }
 
-int select1 (int* bs, int n){
+int select1 (int* bs, int n, int size){
     if (n <= 0) return -1;
     int count = 0, i = 0;
-    for (i = 0; i < sizeof(bs); i++){
+    for (i = 0; i < size; i++){
         if (bs[i] == 1) count++;
         if (count == n) break;
     }
@@ -214,7 +215,7 @@ void convert (TrieNode* node){
 }
 
 void printDense() {
-    for (int i = 0; i < dense_chars * ALPHABET_SIZE; i++){
+    for (int i = 0; i < dense_parents * ALPHABET_SIZE; i++){
         if (d_labels[i] == 1 || d_haschild[i] == 1 || d_isprefixkey[i] == 1){
             printf ("%c, D-Labels[%d] = %d, D-HasChild[%d] = %d, D-isPrefixKey[%d] = %d, D-Values[%d] = %d\n", i%ALPHABET_SIZE, i, d_labels[i], i, d_haschild[i], i, d_isprefixkey[i], i, d_values[i]);
         }
@@ -269,35 +270,31 @@ int lookupDense (std::string string, int* value_hash){
         }
         return -1;
     } else if (i == string.length() && d_isprefixkey[pos] == 1) return 0;
-    return (child/ALPHABET_SIZE - dense_chars) + 1;//o tamanho do prefixo é >= ao split_value, vamos para o sparse
+    return (child/ALPHABET_SIZE - dense_nodes) + 1;//o tamanho do prefixo é >= ao split_value, vamos para o sparse
 }
 
 int lookupSparse (std::string string, int dense, int* value_hash){
-    int i = 0, pos = select1 (s_louds, dense);
+    int i = 0, pos = select1 (s_louds, dense, sparse_chars);
     bool found = false, child = false;
     if (string.length() == 0 && s_labels[pos] == '$') {
         *value_hash = s_values[pos];
         return 0;
     }
     for (i = 0; i < string.length() && pos < sparse_chars; i++){
-        found = false;
-        child = false;
-        if (i > 0) pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) - dense_chars);
         do {
-            if (!child && s_haschild[pos] == 1) child = true;
             if (string[i] == s_labels[pos]) {
-                found = true;
                 pos_level[split_level + i] = pos;
+                *value_hash = s_values[pos];
                 break;
             } else pos++;
-        } while (s_louds[pos] == 0 && pos < sparse_chars);
-        if (found) {
-            *value_hash = s_values[pos];
-            pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) - dense_chars);
+        } while (s_louds[pos] == 0);
+        if (s_haschild[pos] == 1) {
+            pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_parents) + 1 - dense_nodes, sparse_chars);
         }
+        else break;
     }
     if (i == string.length()) return (found ? 0 : 1); //percorremos toda a string e chegamos ao fim
-    else if (!child) return 0; //paramos pois chegamos a uma folha, resultado positivo, possivelmente falso.
+    if (!child) return 0; //paramos pois chegamos a uma folha, resultado positivo, possivelmente falso.
     return 1;
 }
 
@@ -308,6 +305,7 @@ bool lookup (std::string input){
     if (result > 0){
         result = lookupSparse (input.substr (split_level, input.length()), result, &value_hash);
     }
+    //std::cout << "value_hash = " << value_hash << ", input_hash = " << input_hash << "\n";
     return (value_hash == input_hash);
 }
 
@@ -334,13 +332,13 @@ char searchAll (std::vector<std::string>* keys, char* current, int level){
             }
         }
     } else {
-        if (level == split_level) i = select1 (s_louds, (pos_level[level]/ALPHABET_SIZE - dense_chars) + 1);
+        if (level == split_level) i = select1 (s_louds, (pos_level[level]/ALPHABET_SIZE - dense_nodes) + 1, sparse_chars);
         else i = pos_level[level];
         //for (int x = 0; x < max_level; x++) printf ("max_level[%d] = %d\n", x, pos_level[x]);
         do {
             current[level] = s_labels[i];
             if (s_haschild[i] == 1) {
-                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_nodes) - dense_chars);
+                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_parents) + 1 - dense_nodes, sparse_chars);
                 searchAll (keys, current, level + 1);
             } else {
                 for (int j = level + 1; j < max_level; j++) {
@@ -435,20 +433,55 @@ int surfHash (TrieNode* node){
     return children;
 }
 
-void specs (TrieNode* node, int level){
-    bool p = false;
-    for (int i = 0; i < ALPHABET_SIZE; i++){
-        if (node->children[i] != NULL){
-            if (level < split_level) {
-                if (!p) {
-                    p = true;
+void specs (TrieNode* node){
+    std::vector<TrieNode*> search;
+    search.push_back (node);
+
+    TrieNode* current = NULL;
+    bool node_count = false;
+
+    while (!search.empty()){
+        node_count = false;
+        for (int i = 0; i < ALPHABET_SIZE; i++){
+            if (search[0]->children[i] != NULL) {
+                current = search[0]->children[i];
+                if (current->level <= split_level){
+                    if (!node_count) {
+                        node_count = true;
+                        dense_nodes++;
+                    }
+                    if (current->parent) dense_parents++;
                     dense_chars++;
-                }
-                dense_nodes++;
-            } else sparse_chars++;
-            specs (node->children[i], level + 1);
+                } else sparse_chars++;
+                
+                search.push_back (current);
+            }
         }
+        search.erase (search.begin(), search.begin()+1);
     }
+}
+
+void test (const char* filename){
+    FILE* fp;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen(filename, "r");
+    if (fp == NULL) exit(EXIT_FAILURE);
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        line = trim (line, NULL);
+        read = strlen (line);
+
+        std::string str(line);
+        std::cout << str;
+        if (lookup (str)) std::cout << " YES\n";
+        else break;
+    }
+
+    fclose(fp);
+    if (line) free(line);
 }
 
 int main(int argc, char **argv) {
@@ -463,15 +496,15 @@ int main(int argc, char **argv) {
     buildTrie (root, argv[1]);
     surfHash (root);
 
-    specs (root,  0);
+    specs (root);
 
     printTrie (root, "");
 
-    d_labels = (int*) malloc (dense_chars * ALPHABET_SIZE * sizeof (int));
-    d_haschild = (int*) malloc (dense_chars * ALPHABET_SIZE * sizeof (int));
-    d_isprefixkey = (int*) malloc (dense_chars * ALPHABET_SIZE * sizeof (int));
-    d_values = (int*) malloc (dense_chars * ALPHABET_SIZE * sizeof (int));
-    for (int i = 0; i < dense_chars * ALPHABET_SIZE; i++){
+    d_labels = (int*) malloc (dense_parents * ALPHABET_SIZE * sizeof (int));
+    d_haschild = (int*) malloc (dense_parents * ALPHABET_SIZE * sizeof (int));
+    d_isprefixkey = (int*) malloc (dense_parents * ALPHABET_SIZE * sizeof (int));
+    d_values = (int*) malloc (dense_parents * ALPHABET_SIZE * sizeof (int));
+    for (int i = 0; i < dense_parents * ALPHABET_SIZE; i++){
         d_labels[i] = 0;
         d_haschild[i] = 0;
         d_isprefixkey[i] = 0;
@@ -496,11 +529,12 @@ int main(int argc, char **argv) {
     deleteTrie (root);
     free (root);
 
-    printDense();
-    printSparse();
+    //printDense();
+    //printSparse();
 
-    keyboardInput();
-
+    //keyboardInput();
+    test (argv[1]);
+    
     free (d_labels);
     free (d_haschild);
     free (d_isprefixkey);

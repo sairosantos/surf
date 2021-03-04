@@ -268,7 +268,7 @@ int lookupSparse (std::string string, int dense){
     bool found = false;
     if (string.length() == 0 && s_labels[pos] == '$') return 0;
     for (i = 0; i < string.length(); i++){
-        if (i > 0) pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) - dense_chars);
+        if (i > 0) pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) + 1 - dense_chars);
         do {
             if (string[i] == s_labels[pos]) {
                 found = true;
@@ -468,8 +468,7 @@ int main(int argc, char **argv) {
     max_level = 0;
 
     buildTrie (root, argv[1]);
-    //surfHash (root, "");
-
+    
     specs (root,  0);
 
     d_labels = (int*) malloc (dense_chars * ALPHABET_SIZE * sizeof (int));

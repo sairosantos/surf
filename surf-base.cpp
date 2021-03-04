@@ -244,23 +244,40 @@ int lookupDense (std::string string){
 int lookupSparse (std::string string, int dense){
     int i = 0, pos = select1 (s_louds, dense);
     bool found = false, child = false;
+    /*for (i = 0; i < string.length(); i++){
+        do {
+            std::cout << "string[" << i << "] = " << string[i] << ", pos = " << pos << " = " << s_labels[pos] << " \n";
+            if (string[i] == s_labels[pos]){
+                pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) + 1 - dense_chars);
+                printf ("this happened\n");
+            } else pos++;
+        } while (s_louds[pos] == 0);
+    }*/
     if (string.length() == 0 && s_labels[pos] == '$') return 0;
-    for (i = 0; i < string.length() && pos < sparse_chars; i++){
+    for (i = 0; i < string.length(); i++){
         found = false;
         child = false;
-        if (i > 0) pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) - dense_chars);
         do {
+            std::cout << "string[" << i << "] = " << string[i] << ", pos = " << pos << " = " << s_labels[pos] << " \n";
             if (!child && s_haschild[pos] == 1) child = true;
             if (string[i] == s_labels[pos]) {
                 found = true;
                 pos_level[split_level + i] = pos;
                 break;
-            } else pos++;
+            } else {
+                printf ("not found! pos %d -> ", pos); 
+                pos++;
+                printf ("%d\n", pos);
+            }
         } while (s_louds[pos] == 0 && pos < sparse_chars);
-        if (found) pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) - dense_chars);
+        if (found) {
+            printf ("found! pos %d -> ", pos);
+            pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) + 1 - dense_chars);
+            printf ("%d\n", pos);
+        }
     }
     if (i == string.length()) return (found ? 0 : 1); //percorremos toda a string e chegamos ao fim
-    else if (!child) return 0; //paramos pois chegamos a uma folha, resultado positivo, possivelmente falso.
+    else if (!child) return 0; //paramos pois chegamos a uma folha, resultado positivo, possivelmente falso.*/
     return 1;
 }
 
@@ -302,11 +319,10 @@ char searchAll (std::vector<std::string>* keys, char* current, int level){
     } else {
         if (level == split_level) i = select1 (s_louds, (pos_level[level]/ALPHABET_SIZE - dense_chars) + 1);
         else i = pos_level[level];
-        //for (int x = 0; x < max_level; x++) printf ("max_level[%d] = %d\n", x, pos_level[x]);
         do {
             current[level] = s_labels[i];
             if (s_haschild[i] == 1) {
-                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_nodes) - dense_chars);
+                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_nodes) + 1 - dense_chars);
                 searchAll (keys, current, level + 1);
             } else {
                 for (int j = level + 1; j < max_level; j++) {
@@ -426,7 +442,7 @@ int main(int argc, char **argv) {
     max_level = 0;
 
     buildTrie (root, argv[1]);
-    surfBase (root);
+    //surfBase (root);
 
     specs (root,  0);
 
@@ -456,6 +472,9 @@ int main(int argc, char **argv) {
     convert (root);
     deleteTrie (root);
     free (root);
+
+    printDense();
+    printSparse();
 
     keyboardInput();
 
