@@ -319,9 +319,8 @@ void keyboardInput() {
 void deleteTrie (TrieNode* node){
     for (int i = 0; i < ALPHABET_SIZE; i++){
         if (node->children[i] != NULL) deleteTrie (node->children[i]);
-        free (node->children[i]);
-        node->children[i] = NULL;
     }
+    free (node);
 }
 
 int surfReal (TrieNode* node){
@@ -444,7 +443,6 @@ int main(int argc, char **argv) {
 
     convert (root);
     deleteTrie (root);
-    free (root);
 
     //printDense();
     //printSparse();

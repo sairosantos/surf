@@ -12,8 +12,9 @@
 int *d_labels, *d_haschild, *d_isprefixkey, *s_haschild, *s_louds;
 char *s_labels;
 
-int dense_chars;
 int sparse_chars;
+int dense_parents;
+int dense_chars;
 int dense_nodes;
 int max_level;
 int seed;
@@ -30,10 +31,10 @@ struct TrieNode
     int hash = 0;
 };
 
-int select1 (int* bs, int n){
+int select1 (int* bs, int n, int size){
     if (n <= 0) return -1;
     int count = 0, i = 0;
-    for (i = 0; i < sizeof(bs); i++){
+    for (i = 0; i < size; i++){
         if (bs[i] == 1) count++;
         if (count == n) break;
     }
@@ -228,56 +229,46 @@ int lookupDense (std::string string){
     for (i = 0; i < limit; i++){
         pos = child + string[i];
         pos_level[i] = pos;
-        if (d_isprefixkey[pos] == 1) return 0;
+        if (d_isprefixkey[pos] == 1) {
+            return 0;
+        }
         if (d_labels[pos] == 0) return -1; //prefixo não existe na trie
         child = ALPHABET_SIZE * rank1 (d_haschild, pos);
     }
 
     if (i < split_level){
-        if (d_isprefixkey[pos] == 1) return 0;
-        if (d_isprefixkey[child + '$'] == 1) return 0;
+        if (d_isprefixkey[pos] == 1) {
+            return 0;
+        }
+        if (d_isprefixkey[child + '$'] == 1){
+            return 0;
+        }
         return -1;
     } else if (i == string.length() && d_isprefixkey[pos] == 1) return 0;
-    return (child/ALPHABET_SIZE - dense_chars) + 1;//o tamanho do prefixo é >= ao split_value, vamos para o sparse
+    return (child/ALPHABET_SIZE - dense_nodes) + 1;//o tamanho do prefixo é >= ao split_value, vamos para o sparse
 }
 
 int lookupSparse (std::string string, int dense){
-    int i = 0, pos = select1 (s_louds, dense);
+    int i = 0, pos = select1 (s_louds, dense, sparse_chars);
     bool found = false, child = false;
-    /*for (i = 0; i < string.length(); i++){
+    if (string.length() == 0 && s_labels[pos] == '$') {
+        return 0;
+    }
+    for (i = 0; i < string.length() && pos < sparse_chars; i++){
         do {
-            std::cout << "string[" << i << "] = " << string[i] << ", pos = " << pos << " = " << s_labels[pos] << " \n";
-            if (string[i] == s_labels[pos]){
-                pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) + 1 - dense_chars);
-                printf ("this happened\n");
-            } else pos++;
-        } while (s_louds[pos] == 0);
-    }*/
-    if (string.length() == 0 && s_labels[pos] == '$') return 0;
-    for (i = 0; i < string.length(); i++){
-        found = false;
-        child = false;
-        do {
-            std::cout << "string[" << i << "] = " << string[i] << ", pos = " << pos << " = " << s_labels[pos] << " \n";
-            if (!child && s_haschild[pos] == 1) child = true;
             if (string[i] == s_labels[pos]) {
                 found = true;
                 pos_level[split_level + i] = pos;
                 break;
-            } else {
-                printf ("not found! pos %d -> ", pos); 
-                pos++;
-                printf ("%d\n", pos);
-            }
-        } while (s_louds[pos] == 0 && pos < sparse_chars);
-        if (found) {
-            printf ("found! pos %d -> ", pos);
-            pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_nodes) + 1 - dense_chars);
-            printf ("%d\n", pos);
+            } else pos++;
+        } while (s_louds[pos] == 0);
+        if (s_haschild[pos] == 1) {
+            pos = select1 (s_louds, (rank1 (s_haschild, pos) + dense_parents) + 1 - dense_nodes, sparse_chars);
         }
+        else break;
     }
     if (i == string.length()) return (found ? 0 : 1); //percorremos toda a string e chegamos ao fim
-    else if (!child) return 0; //paramos pois chegamos a uma folha, resultado positivo, possivelmente falso.*/
+    if (!child) return 0; //paramos pois chegamos a uma folha, resultado positivo, possivelmente falso.
     return 1;
 }
 
@@ -317,12 +308,12 @@ char searchAll (std::vector<std::string>* keys, char* current, int level){
             }
         }
     } else {
-        if (level == split_level) i = select1 (s_louds, (pos_level[level]/ALPHABET_SIZE - dense_chars) + 1);
+        if (level == split_level) i = select1 (s_louds, (pos_level[level]/ALPHABET_SIZE - dense_chars) + 1, sparse_chars);
         else i = pos_level[level];
         do {
             current[level] = s_labels[i];
             if (s_haschild[i] == 1) {
-                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_nodes) + 1 - dense_chars);
+                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_nodes) + 1 - dense_chars, sparse_chars);
                 searchAll (keys, current, level + 1);
             } else {
                 for (int j = level + 1; j < max_level; j++) {
@@ -386,9 +377,8 @@ void keyboardInput() {
 void deleteTrie (TrieNode* node){
     for (int i = 0; i < ALPHABET_SIZE; i++){
         if (node->children[i] != NULL) deleteTrie (node->children[i]);
-        free (node->children[i]);
-        node->children[i] = NULL;
     }
+    free (node);
 }
 
 int surfBase (TrieNode* node){
@@ -416,20 +406,55 @@ int surfBase (TrieNode* node){
     return children;
 }
 
-void specs (TrieNode* node, int level){
-    bool p = false;
-    for (int i = 0; i < ALPHABET_SIZE; i++){
-        if (node->children[i] != NULL){
-            if (level < split_level) {
-                if (!p) {
-                    p = true;
+void specs (TrieNode* node){
+    std::vector<TrieNode*> search;
+    search.push_back (node);
+
+    TrieNode* current = NULL;
+    bool node_count = false;
+
+    while (!search.empty()){
+        node_count = false;
+        for (int i = 0; i < ALPHABET_SIZE; i++){
+            if (search[0]->children[i] != NULL) {
+                current = search[0]->children[i];
+                if (current->level <= split_level){
+                    if (!node_count) {
+                        node_count = true;
+                        dense_nodes++;
+                    }
+                    if (current->parent) dense_parents++;
                     dense_chars++;
-                }
-                dense_nodes++;
-            } else sparse_chars++;
-            specs (node->children[i], level + 1);
+                } else sparse_chars++;
+                
+                search.push_back (current);
+            }
         }
+        search.erase (search.begin(), search.begin()+1);
     }
+}
+
+void test (const char* filename){
+    FILE* fp;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen(filename, "r");
+    if (fp == NULL) exit(EXIT_FAILURE);
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        line = trim (line, NULL);
+        read = strlen (line);
+
+        std::string str(line);
+        std::cout << str;
+        if (lookup (str)) std::cout << " YES\n";
+        else break;
+    }
+
+    fclose(fp);
+    if (line) free(line);
 }
 
 int main(int argc, char **argv) {
@@ -442,9 +467,9 @@ int main(int argc, char **argv) {
     max_level = 0;
 
     buildTrie (root, argv[1]);
-    //surfBase (root);
+    surfBase (root);
 
-    specs (root,  0);
+    specs (root);
 
     printTrie (root, "");
 
@@ -471,12 +496,11 @@ int main(int argc, char **argv) {
 
     convert (root);
     deleteTrie (root);
-    free (root);
 
-    printDense();
-    printSparse();
+    //printDense();
+    //printSparse();
 
-    keyboardInput();
+    test (argv[1]);
 
     free (d_labels);
     free (d_haschild);
