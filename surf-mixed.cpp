@@ -10,8 +10,8 @@
 #define ALPHABET_SIZE 256
 
 struct Info {
-    int hash;
     int real;
+    int hash;
 };
 
 struct TrieNode
@@ -35,14 +35,17 @@ int dense_nodes;
 int max_level;
 int seed;
 int* pos_level;
+int* count_level;
 
-int split_level = 3;
+const char* filename;
+
+int split_level;
 
 int shift_add_xor (std::string input){
     int h = 0;
     if (seed == 0){
         srand (time(NULL));
-        seed = rand() % 256 + 1;
+        seed = rand() % 256;
     }
 
     h = seed;
@@ -200,8 +203,8 @@ void convert (TrieNode* node){
                     }
                     if (current->isEndOfWord) {
                         d_isprefixkey [(parent_count * ALPHABET_SIZE) + i] = 1;
-                        d_values [(parent_count * ALPHABET_SIZE) + i].hash = current->info.hash;
                         d_values [(parent_count * ALPHABET_SIZE) + i].real = current->info.real;
+                        d_values [(parent_count * ALPHABET_SIZE) + i].hash = current->info.hash;
                     }
                 } else {
                     s_labels[sparse_count] = i;
@@ -210,10 +213,8 @@ void convert (TrieNode* node){
                         s_louds[sparse_count] = 1;
                         louds = true;
                     }
-                    if (current->info.hash != 0) {
-                        s_values[sparse_count].hash = current->info.hash;
-                        s_values[sparse_count].real = current->info.real;
-                    }
+                    s_values[sparse_count].real = current->info.real;
+                    s_values[sparse_count].hash = current->info.hash;
                     sparse_count++;
                 }
                 
@@ -325,8 +326,6 @@ bool lookup (std::string input){
         result = lookupSparse (input.substr (split_level, input.length()), result, &value_hash, &value_real, &cutoff);
     }
     if (cutoff < input.length()) input_real = input.substr (cutoff + 1, input.length())[0];
-    //std::cout << "value_hash = " << value_hash << ", input_hash = " << input_hash << "\n";
-    //std::cout << "value_real = " << value_real << ", input_real = " << input_real << "\n";
     return (value_hash == input_hash) && (value_real == input_real);
 }
 
@@ -394,31 +393,6 @@ void lowerBound (std::string input){
     free (key);
 }
 
-void keyboardInput() {
-    std::string input;
-    std::string end = "end";
-    std::string op = "";
-
-    std::cout << "a - exact key search | b - lower bound search: ";
-    std::cin >> op;
-    
-    while (input.compare(end) != 0) {
-        std::cin >> input;
-        if (input.compare ("") && input.compare (end)) {
-            if (!op.compare ("a")){
-                if (lookup (input)) std::cout << "YES\n";
-                else std::cout << "NO\n";
-            } else if (!op.compare ("b")){
-                cleanMaxArray();
-                lowerBound (input);
-            } else {
-                std::cout << "invalid option";
-                input = "end";
-            }
-        }
-    }
-}
-
 void deleteTrie (TrieNode* node){
     for (int i = 0; i < ALPHABET_SIZE; i++){
         if (node->children[i] != NULL) deleteTrie (node->children[i]);
@@ -449,6 +423,8 @@ int surfMixed (TrieNode* node){
             }
         }
     }
+
+    count_level[node->level]++;
 
     return children;
 }
@@ -495,14 +471,40 @@ void test (const char* filename){
         read = strlen (line);
 
         std::string str(line);
-        if (!lookup (str)) {
-            std::cout << str << "\n"; 
-            break;
-        }
+        std::cout << str;
+        if (lookup (str)) std::cout << " YES\n";
+        else break;
     }
 
     fclose(fp);
     if (line) free(line);
+}
+
+void keyboardInput() {
+    std::string input;
+    std::string end = "end";
+    std::string op = "";
+
+    std::cout << "a - exact key search | b - lower bound search | c - test all: ";
+    std::cin >> op;
+
+    if (op < "a" || op > "c") return;
+    if (!op.compare ("c")){
+        test (filename);
+        exit (EXIT_SUCCESS);
+    } 
+    while (input.compare(end) != 0) {
+        std::cin >> input;
+        if (input.compare ("") && input.compare (end)) {
+            if (!op.compare ("a")){
+                if (lookup (input)) std::cout << "YES\n";
+                else std::cout << "NO\n";
+            } else if (!op.compare ("b")){
+                cleanMaxArray();
+                lowerBound (input);
+            }
+        }
+    }
 }
 
 int main(int argc, char **argv) {
@@ -513,13 +515,26 @@ int main(int argc, char **argv) {
     root->level = 0;
 
     max_level = 0;
+    filename = argv[1];
+    
+    buildTrie (root, filename);
+    count_level = (int*) malloc (max_level*sizeof(int));
+    pos_level = (int*) malloc (max_level * sizeof (int));
+    for (int i = 0; i < max_level; i++) {
+        count_level[i] = 0;
+        pos_level[i] = 0;
+    }
 
-    buildTrie (root, argv[1]);
     surfMixed (root);
 
-    specs (root);
+    int dense_size = 0, sparse_size = 0, i = 0;
+    for (split_level = 0; split_level < max_level; split_level++){
+        for (i = 0; i < split_level; i++) dense_size += count_level[i];
+        for (i = split_level; i < max_level; i++) sparse_size += count_level[i];
+        if (dense_size * 64 > sparse_size) break;
+    }
 
-    //printTrie (root, "");
+    specs (root);
 
     d_labels = (int*) malloc (dense_parents * ALPHABET_SIZE * sizeof (int));
     d_haschild = (int*) malloc (dense_parents * ALPHABET_SIZE * sizeof (int));
@@ -554,8 +569,8 @@ int main(int argc, char **argv) {
     //printDense();
     //printSparse();
 
-    //keyboardInput();
-    test (argv[1]);
+    keyboardInput();
+    //test (argv[1]);
     
     free (d_labels);
     free (d_haschild);

@@ -12,6 +12,8 @@
 int *d_labels, *d_haschild, *d_isprefixkey, *s_haschild, *s_louds;
 char *s_labels;
 
+const char* filename;
+
 int sparse_chars;
 int dense_parents;
 int dense_chars;
@@ -19,6 +21,7 @@ int dense_nodes;
 int max_level;
 int seed;
 int* pos_level;
+int* count_level;
 
 int split_level = 3;
 
@@ -308,12 +311,12 @@ char searchAll (std::vector<std::string>* keys, char* current, int level){
             }
         }
     } else {
-        if (level == split_level) i = select1 (s_louds, (pos_level[level]/ALPHABET_SIZE - dense_chars) + 1, sparse_chars);
+        if (level == split_level) i = select1 (s_louds, (pos_level[level]/ALPHABET_SIZE - dense_nodes) + 1, sparse_chars);
         else i = pos_level[level];
         do {
             current[level] = s_labels[i];
             if (s_haschild[i] == 1) {
-                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_nodes) + 1 - dense_chars, sparse_chars);
+                pos_level[level + 1] = select1 (s_louds, (rank1 (s_haschild, i) + dense_parents) + 1 - dense_nodes, sparse_chars);
                 searchAll (keys, current, level + 1);
             } else {
                 for (int j = level + 1; j < max_level; j++) {
@@ -349,14 +352,42 @@ void lowerBound (std::string input){
     free (key);
 }
 
+void test (const char* filename){
+    FILE* fp;
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen(filename, "r");
+    if (fp == NULL) exit(EXIT_FAILURE);
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        line = trim (line, NULL);
+        read = strlen (line);
+
+        std::string str(line);
+        std::cout << str;
+        if (lookup (str)) std::cout << " YES\n";
+        else break;
+    }
+
+    fclose(fp);
+    if (line) free(line);
+}
+
 void keyboardInput() {
     std::string input;
     std::string end = "end";
     std::string op = "";
 
-    std::cout << "a - exact key search | b - lower bound search: ";
+    std::cout << "a - exact key search | b - lower bound search | c - test all: ";
     std::cin >> op;
-    
+
+    if (op < "a" || op > "c") return;
+    if (!op.compare ("c")){
+        test (filename);
+        exit (EXIT_SUCCESS);
+    } 
     while (input.compare(end) != 0) {
         std::cin >> input;
         if (input.compare ("") && input.compare (end)) {
@@ -366,9 +397,6 @@ void keyboardInput() {
             } else if (!op.compare ("b")){
                 cleanMaxArray();
                 lowerBound (input);
-            } else {
-                std::cout << "invalid option";
-                input = "end";
             }
         }
     }
@@ -403,6 +431,8 @@ int surfBase (TrieNode* node){
         }
     }
 
+    count_level[node->level]++;
+
     return children;
 }
 
@@ -434,29 +464,6 @@ void specs (TrieNode* node){
     }
 }
 
-void test (const char* filename){
-    FILE* fp;
-    char* line = NULL;
-    size_t len = 0;
-    ssize_t read;
-
-    fp = fopen(filename, "r");
-    if (fp == NULL) exit(EXIT_FAILURE);
-
-    while ((read = getline(&line, &len, fp)) != -1) {
-        line = trim (line, NULL);
-        read = strlen (line);
-
-        std::string str(line);
-        std::cout << str;
-        if (lookup (str)) std::cout << " YES\n";
-        else break;
-    }
-
-    fclose(fp);
-    if (line) free(line);
-}
-
 int main(int argc, char **argv) {
     TrieNode* root = new_node();
     root->level = 0;
@@ -465,13 +472,26 @@ int main(int argc, char **argv) {
     root->level = 0;
 
     max_level = 0;
+    filename = argv[1];
+    
+    buildTrie (root, filename);
+    count_level = (int*) malloc (max_level*sizeof(int));
+    pos_level = (int*) malloc (max_level * sizeof (int));
+    for (int i = 0; i < max_level; i++) {
+        count_level[i] = 0;
+        pos_level[i] = 0;
+    }
 
-    buildTrie (root, argv[1]);
     surfBase (root);
 
-    specs (root);
+    int dense_size = 0, sparse_size = 0, i = 0;
+    for (split_level = 0; split_level < max_level; split_level++){
+        for (i = 0; i < split_level; i++) dense_size += count_level[i];
+        for (i = split_level; i < max_level; i++) sparse_size += count_level[i];
+        if (dense_size * 64 > sparse_size) break;
+    }
 
-    printTrie (root, "");
+    specs (root);
 
     d_labels = (int*) malloc (dense_chars * ALPHABET_SIZE * sizeof (int));
     d_haschild = (int*) malloc (dense_chars * ALPHABET_SIZE * sizeof (int));
@@ -490,9 +510,6 @@ int main(int argc, char **argv) {
         s_haschild[i] = 0;
         s_louds[i] = 0;
     }
-    
-    pos_level = (int*) malloc (max_level * sizeof (int));
-    for (int i = 0; i < max_level; i++) pos_level[i] = 0;
 
     convert (root);
     deleteTrie (root);
@@ -500,7 +517,11 @@ int main(int argc, char **argv) {
     //printDense();
     //printSparse();
 
-    test (argv[1]);
+    keyboardInput();
+    //test (argv[1]);
+
+    free (pos_level);
+    free (count_level);
 
     free (d_labels);
     free (d_haschild);
