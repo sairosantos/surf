@@ -248,20 +248,17 @@ void populate_vector (uint32_t* vector, size_t v_size){
 
 int main (__v32s argc, char const *argv[]){
     srand (time(NULL));
-    uint8_t vector_size;
+    uint32_t vector_size;
     uint32_t filter = rand() % UINT32_MAX;
     uint32_t *bitmap, *vector1, *vector2, *filter_vec;
     uint32_t prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
     
-    __v32u v_size = (64 * 1024 * vector_size)/sizeof(__v32u);
+    __v32u v_size = (1024 * vector_size)/sizeof(__v32u);
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     vector2 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
 
     //std::cout << "v_size = " << v_size << "\n";
-
-    //populate_vector (vector1, v_size, 0);
-    //populate_vector (vector2, v_size, 1);
 
     loadDateColumn (vector1, v_size, "/home/sairo/Experiment/tpch-dbgen/data/orders.tbl", 4);
     loadDateColumn (vector2, v_size, "/home/sairo/Experiment/tpch-dbgen/data/lineitem.tbl", 11);    
@@ -282,7 +279,7 @@ int main (__v32s argc, char const *argv[]){
     }
 
     bloom_set (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
-    bloom_chk (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
+    //bloom_chk (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
     //std::cout << output_count << " positives.\n";
 
     bloom_chk (vector2, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);

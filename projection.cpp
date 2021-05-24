@@ -58,13 +58,13 @@ void loadIntegerColumn (uint32_t* data_vector, uint32_t v_size, string file_path
 
 int main (__v32s argc, char const *argv[]){
     srand (time(NULL));
-    uint8_t vector_size;
+    uint32_t vector_size;
     uint32_t filter = rand() % UINT32_MAX;
     uint32_t *bitmap, *vector1, *vector2, *filter_vec, *result;
     uint32_t prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
     
-    __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
+    __v32u v_size = (1024 * vector_size)/sizeof(__v32u);
     bitmap = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (1, &bitmap[j]);
 
