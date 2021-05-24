@@ -329,7 +329,7 @@ bool lookup (std::string input){
     return (value_hash == input_hash) && (value_real == input_real);
 }
 
-char searchAll (std::vector<std::string>* keys, char* current, int level){
+void searchAll (std::vector<std::string>* keys, char* current, int level){
     int i = 0;
     int new_level = 0;
 
