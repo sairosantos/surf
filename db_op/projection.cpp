@@ -7,7 +7,7 @@
 #include <math.h>
 //#include <arm_neon.h>
 #include <immintrin.h>
-#include "../intrinsics/vima/vima.hpp"
+#include "../../intrinsics/vima/vima.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -75,8 +75,8 @@ int main (__v32s argc, char const *argv[]){
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     vector2 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     
-    loadDateColumn (vector1, v_size, "/home/sairo/Experiment/tpch-dbgen/data/lineitem.tbl", 10);
-    loadIntegerColumn (vector2, v_size, "/home/sairo/Experiment/tpch-dbgen/data/lineitem.tbl", 5);
+    loadDateColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 10);
+    loadIntegerColumn (vector2, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 5);
 
     for (int i = 0; i < v_size; i += VECTOR_SIZE){
         _vim2K_isltu (&filter_vec[i], &vector1[i], &bitmap[i]);

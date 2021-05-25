@@ -7,7 +7,7 @@
 #include <math.h>
 //#include <arm_neon.h>
 #include <immintrin.h>
-#include "../intrinsics/vima/vima.hpp"
+#include "../../intrinsics/vima/vima.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -260,8 +260,8 @@ int main (__v32s argc, char const *argv[]){
 
     //std::cout << "v_size = " << v_size << "\n";
 
-    loadDateColumn (vector1, v_size, "/home/sairo/Experiment/tpch-dbgen/data/orders.tbl", 4);
-    loadDateColumn (vector2, v_size, "/home/sairo/Experiment/tpch-dbgen/data/lineitem.tbl", 11);    
+    loadDateColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 4);
+    loadDateColumn (vector2, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 11);    
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
