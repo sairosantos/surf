@@ -69,9 +69,9 @@ int main (__v32s argc, char const *argv[]){
         _vim2K_isltu (&filter_vec[i], &vector1[i], &bitmap[i]);
     }
 
-    for (int i = 0; i < v_size; ++i){
+    /*for (int i = 0; i < v_size; ++i){
         std::cout << bitmap[i];
-    }
+    }*/
 
     free (bitmap);
     free (vector1);
