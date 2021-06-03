@@ -19,6 +19,14 @@
 
 using namespace std;
 
+void ORCS_tracing_start() {
+    
+}
+
+void ORCS_tracing_stop() {
+    
+}
+
 uint32_t castDate2Int (string date){
     uint32_t day, month, year;
     uint32_t result;
@@ -247,14 +255,36 @@ void populate_vector (uint32_t* vector, size_t v_size){
 }
 
 int main (__v32s argc, char const *argv[]){
-    srand (time(NULL));
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    ORCS_tracing_stop();
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+
     uint32_t vector_size;
-    uint32_t filter = rand() % UINT32_MAX;
-    uint32_t *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
+    uint32_t *o_orderkey, *l_orderkey, *filter_vec;
     uint32_t prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
     
-    __v32u v_size = (1024 * vector_size)/sizeof(__v32u);
+    __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
     o_orderkey = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     l_orderkey = (uint32_t*) malloc (v_size * 4 * sizeof (uint32_t));
 
@@ -280,6 +310,30 @@ int main (__v32s argc, char const *argv[]){
         hash_function_factors[i] = prime_numbers[i % 15];
         shift_amounts[i] = i;
     }
+
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    ORCS_tracing_start();
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
 
     bloom_set (o_orderkey, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
     //bloom_chk (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);

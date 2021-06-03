@@ -43,17 +43,49 @@ void loadColumn (uint32_t* data_vector, uint32_t v_size, string file_path, int c
     }
 }
 
+void ORCS_tracing_start() {
+    
+}
+
+void ORCS_tracing_stop() {
+    
+}
+
 void populate_vector (uint32_t* vector, size_t v_size){
     for (int i = 0; i < v_size; i++) vector[i] = rand() % UINT32_MAX;
 }
 
 int main (__v32s argc, char const *argv[]){
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    ORCS_tracing_stop();
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+
     uint32_t vector_size;
     uint32_t filter = castDate2Int ("1994-01-01");
     uint32_t *bitmap, *vector1, *filter_vec;
     vector_size = atoi(argv[1]);
     
-    __v32u v_size = (1024 * vector_size)/sizeof(__v32u);
+    __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
     bitmap = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (1, &bitmap[j]);
 
@@ -61,17 +93,40 @@ int main (__v32s argc, char const *argv[]){
     for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (filter, &filter_vec[j]);
 
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
-    srand (time(NULL));
+    //srand (time(NULL));
 
     loadColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 10);
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    ORCS_tracing_start();
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
+    asm ("nop");
 
     for (int i = 0; i < v_size; i += VECTOR_SIZE){
         _vim2K_isltu (&filter_vec[i], &vector1[i], &bitmap[i]);
     }
 
-    /*for (int i = 0; i < v_size; ++i){
-        std::cout << bitmap[i];
-    }*/
+    std::cout << filter_vec[v_size-1];
+    std::cout << vector1[v_size-1];
+    std::cout << bitmap[v_size-1];
 
     free (bitmap);
     free (vector1);
