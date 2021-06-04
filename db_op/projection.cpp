@@ -18,12 +18,32 @@
 
 using namespace std;
 
-void ORCS_tracing_start() {
-    
+void __attribute__ ((noinline)) ORCS_tracing_start() {
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
 }
 
-void ORCS_tracing_stop() {
-    
+void __attribute__ ((noinline)) ORCS_tracing_stop() {
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
+    asm volatile ("nop");
 }
 
 uint32_t castDate2Int (string date){
@@ -65,31 +85,7 @@ void loadIntegerColumn (uint32_t* data_vector, uint32_t v_size, string file_path
 }
 
 int main (__v32s argc, char const *argv[]){
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
     ORCS_tracing_stop();
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-
-    //srand (time(NULL));
     uint32_t vector_size;
     uint32_t filter = 15;
     uint32_t *bitmap, *vector1, *vector2, *filter_vec, *result;
@@ -107,32 +103,10 @@ int main (__v32s argc, char const *argv[]){
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     vector2 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     
-    loadDateColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 10);
+    loadIntegerColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 4);
     loadIntegerColumn (vector2, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 5);
 
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
     ORCS_tracing_start();
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
-    asm ("nop");
 
     for (int i = 0; i < v_size; i += VECTOR_SIZE){
         _vim2K_isltu (&filter_vec[i], &vector1[i], &bitmap[i]);
