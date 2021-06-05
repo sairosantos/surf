@@ -47,94 +47,6 @@ void __attribute__ ((noinline)) ORCS_tracing_stop() {
     asm volatile ("nop");
 }
 
-const uint64_t perm[256] = {0x0706050403020100ull,
-     0x0007060504030201ull, 0x0107060504030200ull, 0x0001070605040302ull,
-     0x0207060504030100ull, 0x0002070605040301ull, 0x0102070605040300ull,
-     0x0001020706050403ull, 0x0307060504020100ull, 0x0003070605040201ull,
-     0x0103070605040200ull, 0x0001030706050402ull, 0x0203070605040100ull,
-     0x0002030706050401ull, 0x0102030706050400ull, 0x0001020307060504ull,
-     0x0407060503020100ull, 0x0004070605030201ull, 0x0104070605030200ull,
-     0x0001040706050302ull, 0x0204070605030100ull, 0x0002040706050301ull,
-     0x0102040706050300ull, 0x0001020407060503ull, 0x0304070605020100ull,
-     0x0003040706050201ull, 0x0103040706050200ull, 0x0001030407060502ull,
-     0x0203040706050100ull, 0x0002030407060501ull, 0x0102030407060500ull,
-     0x0001020304070605ull, 0x0507060403020100ull, 0x0005070604030201ull,
-     0x0105070604030200ull, 0x0001050706040302ull, 0x0205070604030100ull,
-     0x0002050706040301ull, 0x0102050706040300ull, 0x0001020507060403ull,
-     0x0305070604020100ull, 0x0003050706040201ull, 0x0103050706040200ull,
-     0x0001030507060402ull, 0x0203050706040100ull, 0x0002030507060401ull,
-     0x0102030507060400ull, 0x0001020305070604ull, 0x0405070603020100ull,
-     0x0004050706030201ull, 0x0104050706030200ull, 0x0001040507060302ull,
-     0x0204050706030100ull, 0x0002040507060301ull, 0x0102040507060300ull,
-     0x0001020405070603ull, 0x0304050706020100ull, 0x0003040507060201ull,
-     0x0103040507060200ull, 0x0001030405070602ull, 0x0203040507060100ull,
-     0x0002030405070601ull, 0x0102030405070600ull, 0x0001020304050706ull,
-     0x0607050403020100ull, 0x0006070504030201ull, 0x0106070504030200ull,
-     0x0001060705040302ull, 0x0206070504030100ull, 0x0002060705040301ull,
-     0x0102060705040300ull, 0x0001020607050403ull, 0x0306070504020100ull,
-     0x0003060705040201ull, 0x0103060705040200ull, 0x0001030607050402ull,
-     0x0203060705040100ull, 0x0002030607050401ull, 0x0102030607050400ull,
-     0x0001020306070504ull, 0x0406070503020100ull, 0x0004060705030201ull,
-     0x0104060705030200ull, 0x0001040607050302ull, 0x0204060705030100ull,
-     0x0002040607050301ull, 0x0102040607050300ull, 0x0001020406070503ull,
-     0x0304060705020100ull, 0x0003040607050201ull, 0x0103040607050200ull,
-     0x0001030406070502ull, 0x0203040607050100ull, 0x0002030406070501ull,
-     0x0102030406070500ull, 0x0001020304060705ull, 0x0506070403020100ull,
-     0x0005060704030201ull, 0x0105060704030200ull, 0x0001050607040302ull,
-     0x0205060704030100ull, 0x0002050607040301ull, 0x0102050607040300ull,
-     0x0001020506070403ull, 0x0305060704020100ull, 0x0003050607040201ull,
-     0x0103050607040200ull, 0x0001030506070402ull, 0x0203050607040100ull,
-     0x0002030506070401ull, 0x0102030506070400ull, 0x0001020305060704ull,
-     0x0405060703020100ull, 0x0004050607030201ull, 0x0104050607030200ull,
-     0x0001040506070302ull, 0x0204050607030100ull, 0x0002040506070301ull,
-     0x0102040506070300ull, 0x0001020405060703ull, 0x0304050607020100ull,
-     0x0003040506070201ull, 0x0103040506070200ull, 0x0001030405060702ull,
-     0x0203040506070100ull, 0x0002030405060701ull, 0x0102030405060700ull,
-     0x0001020304050607ull, 0x0706050403020100ull, 0x0007060504030201ull,
-     0x0107060504030200ull, 0x0001070605040302ull, 0x0207060504030100ull,
-     0x0002070605040301ull, 0x0102070605040300ull, 0x0001020706050403ull,
-     0x0307060504020100ull, 0x0003070605040201ull, 0x0103070605040200ull,
-     0x0001030706050402ull, 0x0203070605040100ull, 0x0002030706050401ull,
-     0x0102030706050400ull, 0x0001020307060504ull, 0x0407060503020100ull,
-     0x0004070605030201ull, 0x0104070605030200ull, 0x0001040706050302ull,
-     0x0204070605030100ull, 0x0002040706050301ull, 0x0102040706050300ull,
-     0x0001020407060503ull, 0x0304070605020100ull, 0x0003040706050201ull,
-     0x0103040706050200ull, 0x0001030407060502ull, 0x0203040706050100ull,
-     0x0002030407060501ull, 0x0102030407060500ull, 0x0001020304070605ull,
-     0x0507060403020100ull, 0x0005070604030201ull, 0x0105070604030200ull,
-     0x0001050706040302ull, 0x0205070604030100ull, 0x0002050706040301ull,
-     0x0102050706040300ull, 0x0001020507060403ull, 0x0305070604020100ull,
-     0x0003050706040201ull, 0x0103050706040200ull, 0x0001030507060402ull,
-     0x0203050706040100ull, 0x0002030507060401ull, 0x0102030507060400ull,
-     0x0001020305070604ull, 0x0405070603020100ull, 0x0004050706030201ull,
-     0x0104050706030200ull, 0x0001040507060302ull, 0x0204050706030100ull,
-     0x0002040507060301ull, 0x0102040507060300ull, 0x0001020405070603ull,
-     0x0304050706020100ull, 0x0003040507060201ull, 0x0103040507060200ull,
-     0x0001030405070602ull, 0x0203040507060100ull, 0x0002030405070601ull,
-     0x0102030405070600ull, 0x0001020304050706ull, 0x0607050403020100ull,
-     0x0006070504030201ull, 0x0106070504030200ull, 0x0001060705040302ull,
-     0x0206070504030100ull, 0x0002060705040301ull, 0x0102060705040300ull,
-     0x0001020607050403ull, 0x0306070504020100ull, 0x0003060705040201ull,
-     0x0103060705040200ull, 0x0001030607050402ull, 0x0203060705040100ull,
-     0x0002030607050401ull, 0x0102030607050400ull, 0x0001020306070504ull,
-     0x0406070503020100ull, 0x0004060705030201ull, 0x0104060705030200ull,
-     0x0001040607050302ull, 0x0204060705030100ull, 0x0002040607050301ull,
-     0x0102040607050300ull, 0x0001020406070503ull, 0x0304060705020100ull,
-     0x0003040607050201ull, 0x0103040607050200ull, 0x0001030406070502ull,
-     0x0203040607050100ull, 0x0002030406070501ull, 0x0102030406070500ull,
-     0x0001020304060705ull, 0x0506070403020100ull, 0x0005060704030201ull,
-     0x0105060704030200ull, 0x0001050607040302ull, 0x0205060704030100ull,
-     0x0002050607040301ull, 0x0102050607040300ull, 0x0001020506070403ull,
-     0x0305060704020100ull, 0x0003050607040201ull, 0x0103050607040200ull,
-     0x0001030506070402ull, 0x0203050607040100ull, 0x0002030506070401ull,
-     0x0102030506070400ull, 0x0001020305060704ull, 0x0405060703020100ull,
-     0x0004050607030201ull, 0x0104050607030200ull, 0x0001040506070302ull,
-     0x0204050607030100ull, 0x0002040506070301ull, 0x0102040506070300ull,
-     0x0001020405060703ull, 0x0304050607020100ull, 0x0003040506070201ull,
-     0x0103040506070200ull, 0x0001030405060702ull, 0x0203040506070100ull,
-     0x0002030405060701ull, 0x0102030405060700ull, 0x0001020304050607ull
-};
-
 uint32_t castDate2Int (string date){
     uint32_t day, month, year;
     uint32_t result;
@@ -173,84 +85,37 @@ void loadIntegerColumn (uint32_t* data_vector, uint32_t v_size, string file_path
     }
 }
 
-void bloom_chk(int32_t *keys, int32_t *vals, size_t tuples, int32_t *filter,
-                         int32_t factors[8], size_t functions, uint8_t log_filter_size,
-                         int32_t *keys_out, int32_t *vals_out) {
-	size_t j, m, i = 0, o = 0, t = tuples - 8;
-	__m256i facts = _mm256_loadu_si256((__m256i*) factors);
-	__m128i shift = _mm_cvtsi32_si128(32 - log_filter_size);
-	__m256i mask_k = _mm256_set1_epi32(functions);
-	__m256i mask_31 = _mm256_set1_epi32(31);
-	__m256i mask_1 = _mm256_set1_epi32(1);
-	__m256i mask_0 = _mm256_set1_epi32(0);
-	// non-constant registers
-	__m256i key, val, fun, inv = _mm256_cmpeq_epi32(mask_1, mask_1);
-	if (tuples >= 8) do {
-		// load new items (mask_0 out reloads)
-		__m256i new_key = _mm256_maskload_epi32(&keys[i], inv);
-		// reset old items
-		fun = _mm256_andnot_si256(inv, fun);
-		key = _mm256_andnot_si256(inv, key);
-		// pick hash function
-		__m256i fact = _mm256_permutevar8x32_epi32(facts, fun);
-		fun = _mm256_add_epi32(fun, mask_1);
-		// combine old with new items
-		key = _mm256_or_si256(key, new_key);
-		// hash the keys and check who is almost dmask_1
-		__m256i hash = _mm256_mullo_epi32(key, fact);
-		__m256i last = _mm256_cmpeq_epi32(fun, mask_k);
-		hash = _mm256_srl_epi32(hash, shift);
-		// check bitmap
-		__m256i div_32 = _mm256_srli_epi32(hash, 5);
-		div_32 = _mm256_i32gather_epi32(filter, div_32, 4);
-		__m256i mod_32 = _mm256_and_si256(hash, mask_31);
-		mod_32 = _mm256_sllv_epi32(mask_1, mod_32);
-		div_32 = _mm256_and_si256(div_32, mod_32);
-		inv = _mm256_cmpeq_epi32(div_32, mask_0);
-		// branch to print winners
-		if (!_mm256_testz_si256(div_32, last)) {
-			__m256i mask = _mm256_andnot_si256(inv, last);
-			m = _mm256_movemask_ps(_mm256_castsi256_ps(mask));
-			__m128i perm_half = _mm_loadl_epi64((__m128i*) &perm[m ^ 255]);
-			__m256i perm = _mm256_cvtepi8_epi32(perm_half);
-			mask = _mm256_permutevar8x32_epi32(mask, perm);
-			__m256i key_out = _mm256_permutevar8x32_epi32(key, perm);
-			_mm256_maskstore_epi32(&keys_out[o], mask, key_out);
-			o += _mm_popcnt_u64(m);
-		}
-		// permute to get rid of losers (and winners)
-		inv = _mm256_or_si256(inv, last);
-		m = _mm256_movemask_ps(_mm256_castsi256_ps(inv));
-		__m128i perm_half = _mm_loadl_epi64((__m128i*) &perm[m]);
-		__m256i perm = _mm256_cvtepi8_epi32(perm_half);
-		inv = _mm256_permutevar8x32_epi32(inv, perm);
-		fun = _mm256_permutevar8x32_epi32(fun, perm);
-		key = _mm256_permutevar8x32_epi32(key, perm);
-		i += _mm_popcnt_u64(m);
-	} while (i <= t);
-	// copy last items
-	int32_t l_keys[8];
-	j = _mm256_movemask_ps(_mm256_castsi256_ps(inv));
-	j = 8 - _mm_popcnt_u64(j);
-	assert(i + j <= tuples);
-	for (i += j ; i != tuples ; ++i, ++j) {
-		l_keys[j] = keys[i];
-	}
-	// process remaining items with scalar code
-	for (i = 0 ; i != j ; ++i) {
-		int32_t key1 = l_keys[i];
-		size_t f = 0;
-		do {
-			uint32_t h = key1 * factors[f++];
-			h >>= 32 - log_filter_size;
-			asm goto("btl	%1, (%0)\n\t"
-			         "jnc	%l[failed]"
-			:: "r"(filter), "r"(h)
-			: "cc" : failed);
-		} while (f != functions);
-		keys_out[o++] = key1;
-failed:;
-    }
+void bloom_chk (int32_t *input_keys, size_t input_size, int32_t *mask_factors, int32_t shift, int32_t *bloom_filter, int32_t* output, size_t *output_count){
+	__mmask16 k = _mm512_int2mask (0xFFFF);
+	__m512i mask_1 = _mm512_set1_epi32(1);
+	__m512i mask_31 = _mm512_set1_epi32(31);
+	__m512i mask_0 = _mm512_set1_epi32(0);
+	__m512i key, val, fun;
+	__m512i mul_factors = _mm512_loadu_si512 ((__m512i*) mask_factors);
+	__m128i mask_shift = _mm_cvtsi32_si128 (shift);
+	size_t i = 0, j = 16, o = 0;
+	do {
+		key = _mm512_mask_loadu_epi32(key, k, &input_keys[i]);
+		i += j;
+		fun = _mm512_mask_xor_epi32(fun, k, fun, fun);
+		__m512i fac = _mm512_permutexvar_epi32(fun, mul_factors);
+		__m512i bit = _mm512_srl_epi32(_mm512_mullo_epi32(key, fac), mask_shift);
+		__m512i bit_div; //= _mm512_i32gather_epi32(_mm512_srli_epi32(bit, 5), bloom_filter, 4);
+		__m512i bit_mod = _mm512_sllv_epi32(mask_1, _mm512_and_epi32(bit, mask_31));
+		k = _mm512_test_epi32_mask(bit_div, bit_mod);
+		fun = _mm512_add_epi32(fun, mask_1);
+		__mmask16 kk = _mm512_mask_cmpeq_epi32_mask(k, fun, mul_factors);
+		_mm512_mask_store_epi32(&output[j], kk, key);
+		k = _mm512_kor(_mm512_knot(k), kk);
+
+		j = 0;
+		int aux = _mm512_mask2int(k);
+		j = _mm_popcnt_u32 (aux);
+		/*while (aux) {
+			aux &= (aux - 1);
+			j++;
+		}*/
+	} while (i + j <= input_size);
 }
 
 int* bloom_create (int n, float p, size_t *size, size_t *functions){
@@ -266,37 +131,37 @@ int* bloom_create (int n, float p, size_t *size, size_t *functions){
 }
 
 void bloom_set(int32_t* entries, size_t entries_size, int32_t* bloom_filter, size_t bloom_filter_size, int32_t* factors, int32_t* shift_m, size_t functions){
-    __m256i facts = _mm256_loadu_si256((__m256i*) factors);
+    	__m512i facts = _mm512_loadu_si512((__m512i*) factors);
 	__m128i shift = _mm_cvtsi32_si128(32 - 7);
-	__m256i mask_k = _mm256_set1_epi32(functions);
-	__m256i mask_31 = _mm256_set1_epi32(31);
-	__m256i mask_1 = _mm256_set1_epi32(1);
-	__m256i mask_0 = _mm256_set1_epi32(0);
+	__mmask16 mask_k = _mm512_int2mask (0xFFFF);
+	__m512i mask_31 = _mm512_set1_epi32(31);
+	__m512i mask_1 = _mm512_set1_epi32(1);
+	__m512i mask_0 = _mm512_set1_epi32(0);
 	// non-constant registers
-	__m256i key, val, fun, inv = _mm256_cmpeq_epi32(mask_1, mask_1);
+	__m512i key, val, fun, inv = _mm512_set1_epi32(1);
 
     for (int i = 0; i < entries_size; i += VECTOR_SIZE){
-        __m256i new_key = _mm256_maskload_epi32(&entries[i], inv);
+	        __m512i new_key = _mm512_mask_loadu_epi32(key, mask_k, &entries[i]);
 		// reset old items
-		fun = _mm256_andnot_si256(inv, fun);
-		key = _mm256_andnot_si256(inv, key);
+		fun = _mm512_andnot_si512(inv, fun);
+		key = _mm512_andnot_si512(inv, key);
 		// pick hash function
-		__m256i fact = _mm256_permutevar8x32_epi32(facts, fun);
-		fun = _mm256_add_epi32(fun, mask_1);
+		__m512i fact = _mm512_permutexvar_epi32(facts, fun);
+		fun = _mm512_add_epi32(fun, mask_1);
 		// combine old with new items
-		key = _mm256_or_si256(key, new_key);
+		key = _mm512_or_si512(key, new_key);
 		// hash the keys and check who is almost dmask_1
-		__m256i hash = _mm256_mullo_epi32(key, fact);
-		__m256i last = _mm256_cmpeq_epi32(fun, mask_k);
-		hash = _mm256_srl_epi32(hash, shift); //hash result
+		__m512i hash = _mm512_mullo_epi32(key, fact);
+		//__m512i last = _mm512_cmpeq_epi32(fun, mask_k);
+		hash = _mm512_srl_epi32(hash, shift); //hash result
 		// check bitmap
-		__m256i div_32 = _mm256_srli_epi32(hash, 5); //divide by 32, integer positions
-		div_32 = _mm256_i32gather_epi32(bloom_filter, div_32, 4); //gather integers
-		hash = _mm256_and_si256(hash, mask_31); //mod 31, bit position
-		hash = _mm256_sllv_epi32(mask_1, hash); //shift by that amount, this is the result
+		__m512i div_32 = _mm512_srli_epi32(hash, 5); //divide by 32, integer positions
+		div_32 = _mm512_i32gather_epi32(div_32, bloom_filter, 4); //gather integers
+		hash = _mm512_and_si512(hash, mask_31); //mod 31, bit position
+		hash = _mm512_sllv_epi32(mask_1, hash); //shift by that amount, this is the result
 		
-        __m256i res = _mm256_or_si256(div_32, hash);
-		for (int i = 0; i < 8; i++) bloom_filter[div_32[i]] = res[i];
+        	__m512i res = _mm512_or_si512(div_32, hash);
+		_mm512_i32scatter_epi32 (bloom_filter, div_32, res, 4);
     }
 }
 
@@ -367,7 +232,7 @@ int main (__v32s argc, char const *argv[]){
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
     double p = 0.000001;
-    int output_count = 0;
+    size_t output_count = 0;
     
     int *bloom_filter = bloom_create ((int) v_size/4, p, &bloom_filter_size, &hash_functions);
     int *output = (int*) malloc (v_size * sizeof (int));
@@ -385,7 +250,7 @@ int main (__v32s argc, char const *argv[]){
     //bloom_chk (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
     //std::cout << output_count << " positives.\n";
 
-    bloom_chk(l_orderkey, NULL, v_size, bloom_filter, hash_function_factors, hash_functions, 0, output, NULL);
+    bloom_chk(l_orderkey, v_size, hash_function_factors, 5, bloom_filter, output, &output_count);
     std::cout << output_count << " positives.\n";
 
     //bloom_confirm (output, output_count, o_orderkey, v_size);

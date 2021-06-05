@@ -5,7 +5,7 @@ PIN_HOME=$SIM_HOME"/trace_generator/pin"
 SINUCA_TRACER_HOME=$SIM_HOME"/trace_generator/extras/pinplay/bin/intel64/sinuca_tracer.so"
 CODE_HOME=$HOME"/surf/db_op"
 COMP_FLAGS="-O2 -DNOINLINE -static"
-SIZES=(100) # 256 8192 1048576)
+SIZES=(20 100) # 256 8192 1048576)
 
 cd $CODE_HOME
 
