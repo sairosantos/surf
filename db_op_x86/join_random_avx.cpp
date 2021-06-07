@@ -101,18 +101,23 @@ void bloom_chk (int32_t *input_keys, size_t input_size, int32_t *mask_factors, i
 		i += j;
 		fun = _mm512_mask_xor_epi32(fun, k, fun, fun);
 		__m512i fac = _mm512_permutexvar_epi32(fun, mul_factors);
-		__m512i bit = _mm512_sllv_epi32(_mm512_mullo_epi32(key, fac), shift_amounts);
+        __m512i shi = _mm512_permutexvar_epi32(fun, shift_amounts);
+		__m512i bit = _mm512_sllv_epi32(_mm512_mullo_epi32(key, fac), shi);
 		_mm512_storeu_si512 (aux_vec1, bit);
 		for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
 		bit = _mm512_loadu_si512 (aux_vec1);
 		__m512i bit_div = _mm512_srli_epi32(bit, 5);// = _mm512_i32gather_epi32(_mm512_srli_epi32(bit, 5), bloom_filter, 4);
-		_mm512_storeu_si512 (aux_vec1, bit_div);
-		for (int i = 0; i < VECTOR_SIZE; i++) {
-			printf ("aux_vec1[%d] = %u -> ", i, aux_vec1[i]);
-			aux_vec1[i] = bloom_filter[aux_vec1[i]];
-			printf ("%u\n", aux_vec1[i]);
-		}
-		bit_div = _mm512_loadu_si512 (aux_vec1);
+        bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
+
+        //scalar gather
+        //_mm512_storeu_si512 (aux_vec1, bit_div);
+		//for (int i = 0; i < VECTOR_SIZE; i++) {
+		//	printf ("aux_vec1[%d] = %u -> ", i, aux_vec1[i]);
+		//	aux_vec1[i] = bloom_filter[aux_vec1[i]];
+		//	printf ("%u\n", aux_vec1[i]);
+		//}
+		//bit_div = _mm512_loadu_si512 (aux_vec1);
+        
 		__m512i bit_mod = _mm512_sllv_epi32(mask_1, _mm512_and_epi32(bit, mask_31));
 		k = _mm512_test_epi32_mask(bit_div, bit_mod);
 		fun = _mm512_add_epi32(fun, mask_1);
