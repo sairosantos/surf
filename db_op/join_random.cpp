@@ -93,6 +93,7 @@ uint32_t* bloom_create (uint32_t n, float p, size_t *size, size_t *functions){
     //std::cout << *functions << " functions.\n";
 
     uint32_t* bf = (uint32_t*) malloc (*size/32 * sizeof (uint32_t));
+    for (int i = 0; i < *size/32; i++) bf[i] = 0;
 
     return bf;
 }
@@ -250,7 +251,7 @@ void bloom_confirm (uint32_t* positives, size_t positives_size, uint32_t* entrie
             }
         }
     }
-    //std::cout << result << " positivos reais.\n";
+    std::cout << result << " positivos reais.\n";
 }
 
 void populate_vector (uint32_t* vector, size_t v_size, string filename){
@@ -287,8 +288,6 @@ int main (__v32s argc, char const *argv[]){
     o_orderkey = (uint32_t*) malloc ((uint32_t) v_size/4 * sizeof (uint32_t));
     l_orderkey = (uint32_t*) malloc (v_size * sizeof (uint32_t));
 
-    std::cout << "v_size = " << v_size*4 << "\n";
-
     //loadDateColumn (o_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
     //loadDateColumn (l_orderkey, v_size * 4, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
@@ -297,13 +296,17 @@ int main (__v32s argc, char const *argv[]){
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
-    double p = 0.000001;
+    double p = 0.1;
     uint32_t output_count = 0;
     
     uint32_t *bloom_filter = bloom_create ((uint32_t) v_size/4, p, &bloom_filter_size, &hash_functions);
     uint32_t *output = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     uint32_t *hash_function_factors = (uint32_t*) malloc (hash_functions * sizeof (uint32_t));    
     uint32_t *shift_amounts = (uint32_t*) malloc (hash_functions * sizeof (uint32_t));
+
+    std::cout << "v_size = " << v_size*4 << "\n";
+    std::cout << "bf_size = " << bloom_filter_size << "\n";
+    std::cout << "functions = " << hash_functions << "\n";
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
