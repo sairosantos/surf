@@ -17,7 +17,7 @@
 
 #define VECTOR_SIZE 16
 #define PRINT_SET 0
-#define PRINT_CHECK 1
+#define PRINT_CHECK 0
 
 using namespace std;
 
@@ -122,8 +122,8 @@ void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_
 		printAVX (mask_1, "mask_1  ");
 		printAVX (mask_31, "mask_31 ");
 		printAVX (mask_0, "mask_0  ");
-		printAVX (mul_factors, "mulfact ");
-		printAVX (shift_amounts, "shiftfac");
+		printAVX (mul_factors, "mul_fact");
+		printAVX (shift_amounts, "shift_am");
 		printf ("---------------------------------------------------------------------------\n");
 	#endif
 
@@ -131,9 +131,6 @@ void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_
 	size_t i = 0, j = 16, o = 0;
 	do {
 		key = _mm512_mask_loadu_epi32(key, k, &input_keys[i]);
-		#if PRINT_CHECK
-			printAVX (key, "entradas");
-		#endif
 		i += j;
 		fun = _mm512_mask_xor_epi32(fun, k, fun, fun);
 		__m512i fac = _mm512_permutexvar_epi32(fun, mul_factors);
@@ -141,10 +138,10 @@ void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_
 		__m512i bit = _mm512_mullo_epi32(key, fac);
 
 		#if PRINT_CHECK
-			printAVX (key, "entradas");
+			printAVX (key, "key     ");
 			printAVX (fun, "fun     ");
-			printAVX (fac, "fac_mult");
-			printAVX (shi, "fac_shif");
+			printAVX (fac, "fac     ");
+			printAVX (shi, "shi     ");
 			printAVX (bit, "res_mul ");
 		#endif
 		bit = _mm512_sllv_epi32 (bit,shi);
@@ -170,7 +167,7 @@ void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_
 		//	printf ("%u\n", aux_vec1[i]);
 		//}
 		//bit_div = _mm512_loadu_si512 (aux_vec1);
-        
+       
 		__m512i bit_mod = _mm512_sllv_epi32(mask_1, _mm512_and_epi32(bit, mask_31));
 		k = _mm512_test_epi32_mask(bit_div, bit_mod);
 		#if PRINT_CHECK
@@ -183,9 +180,9 @@ void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_
 			printInt (_mm512_mask2int (k), "k       ");
 			printInt (_mm512_mask2int (kk), "kk      ");
 			printInt (_mm512_mask2int (_mm512_knot (k)), "inv-k   ");
-			printf   ("j = %d, output_count = %d\n", j, *output_count);
+			printf   ("j = %lu, output_count = %lu\n", j, *output_count);
 		#endif
-		_mm512_mask_store_epi32(&output[*output_count], kk, key);
+		_mm512_mask_storeu_epi32(&output[*output_count], kk, key);
 
 		j = 0;
 		int aux = _mm512_mask2int(kk);
@@ -199,7 +196,7 @@ void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_
 			printInt (aux, "k       ");
 			printInt (_mm512_mask2int(kk), "kk      ");
 			printAVX (fun,     "mt_fac+1");
-			printf ("i = %d, j = %d, output_count = %lu\n", i, j, *output_count);
+			printf ("i = %lu, j = %lu, output_count = %lu\n", i, j, *output_count);
 			printf ("---------------------------------------------------------------------------\n");
 		#endif
 		//printf ("---------------------------------------------------------------------------\n");
@@ -296,22 +293,23 @@ void bloom_set(int32_t* entries, size_t entries_size, int32_t* bloom_filter, siz
 void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries, size_t entries_size){
     int32_t result = 0;
     int32_t count = 0;
-    int32_t* vector = (int32_t*) malloc (VECTOR_SIZE * sizeof (int32_t));
-    int32_t* check = (int32_t*) malloc (VECTOR_SIZE * sizeof (int32_t));
-    int32_t* mask_0 = (int32_t*) malloc (VECTOR_SIZE * sizeof (int32_t));
-    _vim2K_imovs (0, mask_0);
-    for (int i = 0; i < positives_size; i++){
-        _vim2K_imovs (positives[i], vector);
-        for (int j = 0; j < entries_size; j += VECTOR_SIZE){
-            _vim2K_icmqs (vector, &entries[j], check);
-            _vim2K_icmqs (check, mask_0, check);
-            _vim2K_idpts (check, &count);
+    __m512i vector, entries_vec;
+    __mmask16 mask;
+    int i, j;
+
+    for (i = 0; i < positives_size; i++){
+        vector = _mm512_set1_epi32 (positives[i]);
+        for (j = 0; j < entries_size; j += VECTOR_SIZE){
+            entries_vec = _mm512_load_si512 (&entries[j]);
+            mask = _mm512_cmpeq_epi32_mask (vector, entries_vec);
+	    count = _mm512_mask2int (mask);
             if (count > 0){
                 result++;
                 break;
             }
         }
     }
+
     std::cout << result << " positivos reais.\n";
 }
 
@@ -345,7 +343,7 @@ int main (__v32s argc, char const *argv[]){
     int prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
     
-    int32_t v_size = (1024 * 1024 * vector_size)/sizeof(int);
+    int32_t v_size = (1024 * vector_size)/sizeof(int);
     o_orderkey = (int*) aligned_alloc (32, (int) v_size/4 * sizeof (int));
     l_orderkey = (int*) aligned_alloc (32, v_size * sizeof (int));
 
@@ -387,7 +385,7 @@ int main (__v32s argc, char const *argv[]){
     bloom_chk(l_orderkey, v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
     std::cout << output_count << " positives.\n";
 
-    bloom_confirm (output, output_count, o_orderkey, v_size);
+    bloom_confirm (output, output_count, o_orderkey, v_size/4);
 
     //std::cout << bloom_filter[bloom_filter_size-1];
     //std::cout << l_orderkey[(v_size*4)-1];
