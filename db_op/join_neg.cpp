@@ -290,7 +290,7 @@ int main (__v32s argc, char const *argv[]){
     //loadDateColumn (o_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
     //loadDateColumn (l_orderkey, v_size * 4, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    populate_vector (o_orderkey, (uint32_t) v_size/4, 5);
+    populate_vector (o_orderkey, v_size/4, 5);
     populate_vector (l_orderkey, v_size, 6);
 
     size_t bloom_filter_size = 0;
