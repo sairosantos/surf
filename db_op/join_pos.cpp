@@ -284,7 +284,7 @@ int main (__v32s argc, char const *argv[]){
     vector_size = atoi(argv[1]);
     
     __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
-    o_orderkey = (uint32_t*) malloc (((uint32_t) v_size/4) * sizeof (uint32_t));
+    o_orderkey = (uint32_t*) malloc ((uint32_t) v_size/4 * sizeof (uint32_t));
     l_orderkey = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     
     //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
@@ -295,7 +295,7 @@ int main (__v32s argc, char const *argv[]){
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
-    double p = 0.000001;
+    double p = 0.001;
     uint32_t output_count = 0;
     
     uint32_t *bloom_filter = bloom_create ((uint32_t) v_size/4, p, &bloom_filter_size, &hash_functions);
