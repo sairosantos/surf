@@ -287,11 +287,11 @@ int main (__v32s argc, char const *argv[]){
     o_orderkey = (uint32_t*) malloc (((uint32_t) v_size/4) * sizeof (uint32_t));
     l_orderkey = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     
-    loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
-    loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
+    //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
+    //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    //populate_vector (o_orderkey, v_size, 5);
-    //populate_vector (l_orderkey, v_size * 4, 6);
+    populate_vector (o_orderkey, v_size/4, 5);
+    populate_vector (l_orderkey, v_size, 5);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
@@ -303,7 +303,7 @@ int main (__v32s argc, char const *argv[]){
     uint32_t *hash_function_factors = (uint32_t*) malloc (hash_functions * sizeof (uint32_t));    
     uint32_t *shift_amounts = (uint32_t*) malloc (hash_functions * sizeof (uint32_t));
 
-    std::cout << "v_size = " << v_size*4 << "\n";
+    std::cout << "v_size = " << v_size << "\n";
     std::cout << "bf_size = " << bloom_filter_size << "\n";
     std::cout << "functions = " << hash_functions << "\n";
 
@@ -321,7 +321,7 @@ int main (__v32s argc, char const *argv[]){
     bloom_chk (l_orderkey, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
     std::cout << output_count << " positives.\n";
 
-    bloom_confirm (output, output_count, o_orderkey, v_size);
+    bloom_confirm (output, output_count, o_orderkey, v_size/4);
 
     free (o_orderkey);
     free (l_orderkey);

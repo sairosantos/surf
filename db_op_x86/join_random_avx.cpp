@@ -198,6 +198,7 @@ int* bloom_create (int n, float p, size_t *size, size_t *functions){
     *functions = round((*size / n) * log(2));
 
     int* bf = (int*) aligned_alloc (32, *size/32 * sizeof (int));
+    for (int i = 0; i < *size/32; i++) bf[i] = 0;
 
     return bf;
 }
@@ -290,7 +291,7 @@ void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries,
     for (i = 0; i < positives_size; i++){
         vector = _mm512_set1_epi32 (positives[i]);
         for (j = 0; j < entries_size; j += VECTOR_SIZE){
-            entries_vec = _mm512_load_si512 (&entries[j]);
+            entries_vec = _mm512_loadu_si512 (&entries[j]);
             mask = _mm512_cmpeq_epi32_mask (vector, entries_vec);
 	    count = _mm512_mask2int (mask);
             if (count > 0){
@@ -333,7 +334,7 @@ int main (__v32s argc, char const *argv[]){
     int prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
     
-    int32_t v_size = (1024 * vector_size)/sizeof(int);
+    int32_t v_size = (1024 * 1024 * vector_size)/sizeof(int);
     o_orderkey = (int*) aligned_alloc (32, (int) v_size/4 * sizeof (int));
     l_orderkey = (int*) aligned_alloc (32, v_size * sizeof (int));
 
