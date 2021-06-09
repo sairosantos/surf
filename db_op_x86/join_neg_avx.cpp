@@ -322,7 +322,11 @@ void populate_vector (int* vector, size_t v_size, int value){
 }
 
 void populate_vector (int* vector, size_t v_size){
-    for (int i = 0; i < v_size; i++) vector[i] = rand() % UINT32_MAX;
+    for (int i = 0; i < v_size; i++) vector[i] = rand() % UINT8_MAX;
+}
+
+void populate_vector2 (int* vector, size_t v_size){
+    for (int i = 0; i < v_size; i++) vector[i] = UINT8_MAX + (rand() % UINT16_MAX);
 }
 
 int main (__v32s argc, char const *argv[]){
@@ -343,8 +347,8 @@ int main (__v32s argc, char const *argv[]){
     //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
     //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    populate_vector (o_orderkey, (int) v_size/4, 5);
-    populate_vector (l_orderkey, v_size, 6);
+    populate_vector (o_orderkey, (int) v_size/4);
+    populate_vector2 (l_orderkey, v_size);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
