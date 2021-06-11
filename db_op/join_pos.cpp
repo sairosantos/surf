@@ -232,18 +232,34 @@ void bloom_chk(uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, s
     free (shift5_vec);
 }
 
+void bloom_confirm_scalar (uint32_t* positives, size_t positives_size, uint32_t* entries, size_t entries_size){
+    int result = 0;
+    for (int i = 0; i < positives_size; i++){
+        for (int j = 0; j < entries_size; j++){
+            if (positives[i] == entries[j]) {
+                result++;
+                break;
+            }
+        }
+    }
+    std::cout << result << " positivos reais.\n";
+}
+
 void bloom_confirm (uint32_t* positives, size_t positives_size, uint32_t* entries, size_t entries_size){
+    if (positives_size < VECTOR_SIZE) {
+        bloom_confirm_scalar (positives, positives_size, entries, entries_size);
+        return;
+    }
     uint32_t result = 0;
     uint32_t count = 0;
     uint32_t* vector = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
     uint32_t* check = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
-    uint32_t* mask_0 = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
-    _vim2K_imovu (0, mask_0);
+    _vim2K_imovu (0, check);
     for (int i = 0; i < positives_size; i++){
         _vim2K_imovu (positives[i], vector);
         for (int j = 0; j < entries_size; j += VECTOR_SIZE){
+            count = 0;
             _vim2K_icmqu (vector, &entries[j], check);
-            _vim2K_icmqu (check, mask_0, check);
             _vim2K_idptu (check, &count);
             if (count > 0){
                 result++;
@@ -287,11 +303,11 @@ int main (__v32s argc, char const *argv[]){
     o_orderkey = (uint32_t*) malloc ((uint32_t) v_size/4 * sizeof (uint32_t));
     l_orderkey = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     
-    //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
-    //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
+    loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/sairo/Experiment/tpch-dbgen/data/orders.tbl", 1);
+    loadIntegerColumn (l_orderkey, v_size, "/home/sairo/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    populate_vector (o_orderkey, v_size/4, 5);
-    populate_vector (l_orderkey, v_size, 5);
+    //populate_vector (o_orderkey, v_size/4, 5);
+    //populate_vector (l_orderkey, v_size, 5);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;

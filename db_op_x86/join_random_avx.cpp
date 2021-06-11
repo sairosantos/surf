@@ -204,7 +204,7 @@ int* bloom_create (int n, float p, size_t *size, size_t *functions){
 }
 
 void bloom_set(int32_t* entries, size_t entries_size, int32_t* bloom_filter, size_t bloom_filter_size, int32_t* factors, int32_t* shift_m, size_t functions){
-    	__mmask16 mask_k = _mm512_int2mask (0xFFFF);
+    __mmask16 mask_k = _mm512_int2mask (0xFFFF);
 	__m512i mask_31 = _mm512_set1_epi32(31);
 	__m512i mask_1 = _mm512_set1_epi32(1);
 	__m512i mask_0 = _mm512_set1_epi32(0);
