@@ -80,6 +80,19 @@ uint32_t castDate2Int (string date){
     return result;
 }
 
+void bloom_confirm_scalar (int* positives, size_t positives_size, int* entries, size_t entries_size){
+    int result = 0;
+    for (int i = 0; i < positives_size; i++){
+        for (int j = 0; j < entries_size; j++){
+            if (positives[i] == entries[j]) {
+                result++;
+                break;
+            }
+        }
+    }
+    std::cout << result << " positivos reais.\n";
+}
+
 void loadDateColumn (int* data_vector, uint32_t v_size, string file_path, int column){
     ifstream data(file_path);
     string line;
@@ -340,11 +353,11 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
-    //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
+    loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
+    loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    populate_vector (o_orderkey, (int) v_size/4, 5);
-    populate_vector (l_orderkey, v_size, 5);
+    //populate_vector (o_orderkey, (int) v_size/4, 5);
+    //populate_vector (l_orderkey, v_size, 5);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
@@ -377,6 +390,9 @@ int main (__v32s argc, char const *argv[]){
     std::cout << output_count << " positives.\n";
 
     bloom_confirm (output, output_count, o_orderkey, v_size/4);
+    //bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
+
+    for (int i = 0; i < 10; i++) printf ("%lu %lu %lu\n", o_orderkey[i], l_orderkey[i], output[i]);
 
     //std::cout << bloom_filter[bloom_filter_size-1];
     //std::cout << l_orderkey[(v_size*4)-1];

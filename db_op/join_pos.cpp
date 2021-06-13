@@ -303,8 +303,8 @@ int main (__v32s argc, char const *argv[]){
     o_orderkey = (uint32_t*) malloc ((uint32_t) v_size/4 * sizeof (uint32_t));
     l_orderkey = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     
-    loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/sairo/Experiment/tpch-dbgen/data/orders.tbl", 1);
-    loadIntegerColumn (l_orderkey, v_size, "/home/sairo/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
+    loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
+    loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
     //populate_vector (o_orderkey, v_size/4, 5);
     //populate_vector (l_orderkey, v_size, 5);
@@ -330,7 +330,7 @@ int main (__v32s argc, char const *argv[]){
 
     ORCS_tracing_start();
 
-    bloom_set (o_orderkey, (uint32_t) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
+    bloom_set (o_orderkey, v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
     //bloom_chk (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
     //std::cout << output_count << " positives.\n";
 
@@ -338,6 +338,8 @@ int main (__v32s argc, char const *argv[]){
     std::cout << output_count << " positives.\n";
 
     bloom_confirm (output, output_count, o_orderkey, v_size/4);
+
+    for (int i = 0; i < 10; i++) printf ("%lu %lu %lu\n", o_orderkey[i], l_orderkey[i], output[i]);
 
     free (o_orderkey);
     free (l_orderkey);
