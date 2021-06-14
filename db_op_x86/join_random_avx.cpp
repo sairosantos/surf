@@ -173,8 +173,9 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 	    for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
 		bit = _mm512_loadu_si512(aux_vec1);
 		__m512i bit_div = _mm512_srli_epi32 (bit, 5);
+		bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4); //buscamos os inteiros
         __m512i bit_mod = _mm512_and_epi32 (bit, mask_31);
-		bit = _mm512_sllv_epi32 (mask_1, bit_mod);
+		bit_mod = _mm512_sllv_epi32 (mask_1, bit_mod);
 		
 		printAVX (bit_div, "bdiv");
 		printAVX (bit_mod, "bmod");
@@ -188,8 +189,8 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 		
 		fun = _mm512_add_epi32(fun, mask_1); //somamos 1 a todas aos índices de função hash
 		k = _mm512_knot(k);
+		printf ("i = %lu\n", i);
 	} while (i < VECTOR_SIZE);
-	printf ("i = %lu\n", i);
 }
 
 void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_t *mask_factors, int32_t* shift_m, int32_t *bloom_filter, size_t bloom_filter_size, int32_t* output, size_t *output_count){
@@ -349,16 +350,16 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 		bit = _mm512_loadu_si512(aux_vec1);
 		__m512i bit_div = _mm512_srli_epi32 (bit, 5);
         __m512i bit_mod = _mm512_and_epi32 (bit, mask_31);
-		bit = _mm512_sllv_epi32 (mask_1, bit_mod);
+		bit_mod = _mm512_sllv_epi32 (mask_1, bit_mod);
 		
 		#if PRINT_SET
 		printAVXInt (bit, "posi");
-	    	printAVX (bit, "posi");
+	    	printAVX (bit_mod, "inti");
 			__m512i aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
             printAVX (aux_avx, "gath");
 	    #endif
 
-		_mm512_storeu_si512 (aux_vec1, bit);
+		_mm512_storeu_si512 (aux_vec1, bit_mod);
 	    _mm512_storeu_si512 (aux_vec2, bit_div);
 		for (int i = 0; i < VECTOR_SIZE; i++) bloom_filter[aux_vec2[i]] = bloom_filter[aux_vec2[i]] | aux_vec1[i];
 
