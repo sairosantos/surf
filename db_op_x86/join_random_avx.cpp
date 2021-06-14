@@ -71,7 +71,7 @@ void loadIntegerColumn (int* data_vector, uint32_t v_size, string file_path, int
 }
 
 void bloom_confirm_scalar (int32_t* vector1, size_t vector1_size, int32_t* vector2, size_t vector2_size){
-	int32_t result;
+	int32_t result = 0;
 	for (int i = 0; i < vector1_size; i++){
 		for (int j = 0; j < vector2_size; j++){
 			if (vector1[i] == vector2[j]) {
@@ -80,7 +80,7 @@ void bloom_confirm_scalar (int32_t* vector1, size_t vector1_size, int32_t* vecto
 			}
 		}
 	}
-	printf ("%u positivos reais!\n", result);
+	printf ("\n%u positivos reais!\n", result);
 }
 
 void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, int32_t *mask_factors, int32_t* shift_m, int32_t *bloom_filter, size_t bloom_filter_size, int32_t* output, size_t *output_count){
@@ -103,9 +103,6 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 	do {
 		key = _mm512_maskz_compress_epi32 (k, key);
 		fun = _mm512_maskz_compress_epi32 (k, fun);
-
-		//printAVX (key, "keys");
-		//printAVXInt (key, "keys");
 		fac = _mm512_permutexvar_epi32(fun, mul_factors);
 		shi = _mm512_permutexvar_epi32(fun, shift_amounts);
         bit = _mm512_mullo_epi32 (key, fac);
@@ -118,9 +115,6 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 		bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4); //buscamos os inteiros
         __m512i bit_mod = _mm512_and_epi32 (bit, mask_31);
 		bit_mod = _mm512_sllv_epi32 (mask_1, bit_mod);
-		
-		//printAVX (bit_div, "bdiv");
-		//printAVX (bit_mod, "bmod");
 		k = _mm512_test_epi32_mask(bit_div, bit_mod); //comparação; sim significa que o essa entrada continua para a próxima função hash
 		kk = _mm512_mask_cmpeq_epi32_mask(k, fun, fun_max); //vemos quais entradas chegaram ao índice final
 		_mm512_mask_compressstoreu_epi32(&output[*output_count], kk, key);
@@ -132,7 +126,6 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 		fun = _mm512_add_epi32(fun, mask_1); //somamos 1 a todas aos índices de função hash
 		k = _mm512_knot(k);
 	} while (i < VECTOR_SIZE);
-	printf ("i = %lu\n", i);
 }
 
 void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_t *mask_factors, int32_t* shift_m, int32_t *bloom_filter, size_t bloom_filter_size, int32_t* output, size_t *output_count){
@@ -416,7 +409,7 @@ void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries,
     for (i = 0; i < positives_size; i++){
         vector = _mm512_set1_epi32 (positives[i]);
         for (j = 0; j < entries_size; j += VECTOR_SIZE){
-            entries_vec = _mm512_loadu_si512 (&entries[j]);
+            entries_vec = _mm512_load_si512 (&entries[j]);
             mask = _mm512_cmpeq_epi32_mask (vector, entries_vec);
 	    count = _mm512_mask2int (mask);
             if (count > 0){
@@ -458,9 +451,9 @@ int main (__v32s argc, char const *argv[]){
     int *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
     int prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
-    int other = atoi(argv[2]);
+    //int other = atoi(argv[2]);
     
-    int32_t v_size = (other * 1024 * vector_size)/sizeof(int);
+    int32_t v_size = (1024 * 1024 * vector_size)/sizeof(int);
     o_orderkey = (int*) aligned_alloc (64, (int) v_size/4 * sizeof (int));
     l_orderkey = (int*) aligned_alloc (64, v_size * sizeof (int));
 
@@ -494,21 +487,25 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < VECTOR_SIZE; i++) {
 	load_masks[i] = _mm512_int2mask (UINT16_MAX - (std::pow (2, VECTOR_SIZE-i)-1));
-	printf ("%d ", i);
-    	printInt (_mm512_mask2int (load_masks[i]), "wtv");
+	//printf ("%d ", i);
+    	//printInt (_mm512_mask2int (load_masks[i]), "wtv");
     }
     load_masks[VECTOR_SIZE] = _mm512_int2mask (UINT16_MAX);
-    printInt (_mm512_mask2int (load_masks[VECTOR_SIZE]), "wtv");
+    //printInt (_mm512_mask2int (load_masks[VECTOR_SIZE]), "wtv");
 
     ORCS_tracing_start();
 
     for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set_step (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
-    for (int i = 0; i < v_size; i += VECTOR_SIZE) {
-	bloom_chk_step (&l_orderkey[i], v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
-	printf ("output_count = %lu\n", output_count);
-    }
-    //bloom_confirm (l_orderkey, v_size, o_orderkey, v_size/4);
-    bloom_confirm_scalar (o_orderkey, v_size/4, l_orderkey, v_size);
+    for (int i = 0; i < v_size; i += VECTOR_SIZE) bloom_chk_step (&l_orderkey[i], v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
+    printf ("output_count = %lu\n", output_count);
+    //for (int i = 0; i < output_count; i++) printf ("%u ", output[i]);
+    printf ("\n\n");
+    printf ("vector: ");
+    bloom_confirm (output, output_count, o_orderkey, v_size/4);
+    printf ("scalar: ");
+    bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
+    bloom_confirm (l_orderkey, v_size, o_orderkey, v_size/4);
+    bloom_confirm_scalar (l_orderkey, v_size, o_orderkey, v_size/4);
 
     free (o_orderkey);
     free (l_orderkey);
