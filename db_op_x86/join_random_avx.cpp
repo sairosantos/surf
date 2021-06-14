@@ -16,7 +16,7 @@
 #include <bitset>
 
 #define VECTOR_SIZE 16
-#define PRINT_SET 1
+#define PRINT_SET 0
 #define PRINT_CHECK 0
 
 using namespace std;
@@ -24,29 +24,9 @@ __mmask16 load_masks[VECTOR_SIZE];
 
 void __attribute__ ((noinline)) ORCS_tracing_start() {
     asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
 }
 
 void __attribute__ ((noinline)) ORCS_tracing_stop() {
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
     asm volatile ("nop");
 }
 
@@ -57,60 +37,23 @@ void printInt (int integer, std::string string){
 
 void printAVX (__m512i vec, std::string string){
 	int32_t* store = (int32_t*) malloc (16 * sizeof(int32_t));
-
 	_mm512_storeu_si512 (store, vec);
 	std::cout << string << ": ";
 	for (int i = 0; i < VECTOR_SIZE; i++) {
-		//char a = -58;
 		std::bitset<32> x(store[i]);
 		std::cout << x << " ";
-		//std::cout << store[i] << " ";
-		//printf ("%u ", store[i]);
 	}
 	printf ("\n");
-
 	free (store);
 }
 
 void printAVXInt (__m512i vec, std::string string){
 	int32_t* store = (int32_t*) malloc (16 * sizeof(int32_t));
-
-        _mm512_storeu_si512 (store, vec);
-        std::cout << string << ": ";
-        for (int i = 0; i < VECTOR_SIZE; i++) {
-                //char a = -58;
-                //std::bitset<32> x(store[i]);
-                std::cout << store[i] << " ";
-                //std::cout << store[i] << " ";
-                //printf ("%u ", store[i]);
-        }
-        printf ("\n");
-
-        free (store);
-}
-
-uint32_t castDate2Int (string date){
-    uint32_t day, month, year;
-    uint32_t result;
-
-    if (std::sscanf(date.c_str(), "%d-%d-%d", &year, &month, &day) != 3){
-    cout << "Error to parse date string: " << date.c_str() << "." << endl;
-    } else result = 10000 * year + 100 * month + day;
-    return result;
-}
-
-void loadDateColumn (int* data_vector, uint32_t v_size, string file_path, int column){
-    ifstream data(file_path);
-    string line;
-    vector<string> tokens;
-    int count = 0;
-
-    while (getline (data, line)){
-        boost::split (tokens, line, boost::is_any_of("|"));
-        //cout << tokens[column] << "\n";
-        data_vector[count++] = castDate2Int (tokens[column]);
-        if (count == v_size) break;
-    }
+    _mm512_storeu_si512 (store, vec);
+    std::cout << string << ": ";
+    for (int i = 0; i < VECTOR_SIZE; i++) std::cout << store[i] << " ";
+    printf ("\n");
+	free (store);
 }
 
 void loadIntegerColumn (int* data_vector, uint32_t v_size, string file_path, int column){
@@ -160,7 +103,6 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 	do {
 		key = _mm512_maskz_compress_epi32 (k, key);
 		fun = _mm512_maskz_compress_epi32 (k, fun);
-
 
 		printAVX (key, "keys");
 		printAVXInt (key, "keys");
@@ -324,10 +266,24 @@ int* bloom_create (int n, float p, size_t *size, size_t *functions){
     return bf;
 }
 
-void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, size_t bloom_filter_size, int32_t* factors, int32_t* shift_m, size_t functions){
-	if (entries_size > 0){
-		
+void bloom_set_scalar (int32_t* entries, int entries_size, int32_t* bloom_filter, size_t bloom_filter_size, int32_t* factors, int32_t* shift_m, size_t functions){
+	int calc = 0, bf_pos = 0, bit_pos = 0;
+	for (int i = 0; i < entries_size; i++){
+		for (int j = 0; j < functions; j++){
+			calc = 0;
+			calc = entries[i] * factors[i];
+			calc <<= shift_m[i];
+			calc %= bloom_filter_size;
+			bf_pos = calc >> 5;
+			bit_pos = 1 << (calc && 31);
+			bloom_filter[bf_pos] |= bit_pos;
+		}
 	}
+}
+
+void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, size_t bloom_filter_size, int32_t* factors, int32_t* shift_m, size_t functions){
+	if (entries_size < VECTOR_SIZE) bloom_set_scalar (entries, entries_size, bloom_filter, bloom_filter_size, factors, shift_m, functions);
+
 	__m512i mask_1 = _mm512_set1_epi32(1);
 	__m512i mask_31 = _mm512_set1_epi32(31);
 
@@ -337,7 +293,7 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 	__m512i fun = _mm512_set1_epi32(0);
 	uint32_t *aux_vec1 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
 	uint32_t *aux_vec2 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
-	printAVXInt (key, "keys");
+	//printAVXInt (key, "keys");
 
 	for (int j = 0; j < functions; j++) {
         __m512i fac = _mm512_permutexvar_epi32(fun, facts);
@@ -547,27 +503,12 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_start();
 
     bloom_set_step (o_orderkey, (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
-    //bloom_chk (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
-    //std::cout << output_count << " positives.\n";
-
-    //for (int i = 0; i < bloom_filter_size/32; i++) printf ("%u ", bloom_filter[i]);
-    //printf ("\n");
-
-    bloom_chk_step(o_orderkey, v_size/4, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
-    //std::cout << output_count << " positives.\n";
-    //printf ("%u\n", l_orderkey[v_size-1]);
-
+    bloom_chk_step (o_orderkey, v_size/4, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
     //bloom_confirm (l_orderkey, v_size, o_orderkey, v_size/4);
     bloom_confirm_scalar (o_orderkey, v_size/4, l_orderkey, v_size);
 
-    //std::cout << bloom_filter[bloom_filter_size-1];
-    //std::cout << l_orderkey[(v_size*4)-1];
-    //std::cout << output[output_count];
-
     free (o_orderkey);
     free (l_orderkey);
-    //free (bloom_filter);
-    //free (output);
     free (hash_function_factors);
     free (shift_amounts);
 }
