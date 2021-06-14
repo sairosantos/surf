@@ -165,12 +165,17 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 		fac = _mm512_permutexvar_epi32(fun, mul_factors); //buscamos os fatores multiplicatiovs
         shi = _mm512_permutexvar_epi32(fun, shift_amounts); //buscamos as quantidades de shift
 		bit = _mm512_mullo_epi32(key, fac); //multiplicação
+		printAVX (bit, "mul ");
+		bit = _mm512_sllv_epi32 (bit,shi);
+		printAVX (bit, "shi ");
 		_mm512_storeu_si512 (aux_vec1, bit);
 		for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size; //mod pelo tamanho do bloom filter
 		bit = _mm512_loadu_si512 (aux_vec1);
 		bit_div = _mm512_srli_epi32(bit, 5);
 		bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4); //buscamos os inteiros
 		bit_mod = _mm512_sllv_epi32(mask_1, _mm512_and_epi32(bit, mask_31)); //descobrimos qual é o bit equivalente no inteiro e posicionamos o bit
+		printAVX (bit_div, "bdiv");
+		printAVX (bit_mod, "bmod");
 		k = _mm512_test_epi32_mask(bit_div, bit_mod); //comparação; sim significa que o essa entrada continua para a próxima função hash
 		kk = _mm512_mask_cmpeq_epi32_mask(k, fun, fun_max); //vemos quais entradas chegaram ao índice final
 		_mm512_mask_compressstoreu_epi32(&output[*output_count], kk, key);
@@ -182,6 +187,7 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 		fun = _mm512_add_epi32(fun, mask_1); //somamos 1 a todas aos índices de função hash
 		k = _mm512_knot(k);
 	} while (i < VECTOR_SIZE);
+	printf ("i = %lu\n", i);
 }
 
 void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_t *mask_factors, int32_t* shift_m, int32_t *bloom_filter, size_t bloom_filter_size, int32_t* output, size_t *output_count){
@@ -544,7 +550,7 @@ int main (__v32s argc, char const *argv[]){
     //for (int i = 0; i < bloom_filter_size/32; i++) printf ("%u ", bloom_filter[i]);
     //printf ("\n");
 
-    //bloom_chk(l_orderkey, v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
+    bloom_chk_step(o_orderkey, v_size/4, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
     //std::cout << output_count << " positives.\n";
     //printf ("%u\n", l_orderkey[v_size-1]);
 
