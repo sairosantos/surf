@@ -300,7 +300,8 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 		bit = _mm512_sllv_epi32 (mask_1, bit_mod);
 		
 		#if PRINT_SET
-	    	printAVXInt (bit, "posi");
+		printAVXInt (bit, "posi");
+	    	printAVX (bit, "posi");
 			__m512i aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
             printAVX (aux_avx, "gath");
 	    #endif
@@ -310,8 +311,7 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 		for (int i = 0; i < VECTOR_SIZE; i++) bloom_filter[aux_vec2[i]] = bloom_filter[aux_vec2[i]] | aux_vec1[i];
 
 		#if PRINT_SET
-	    	printAVXInt (bit, "posi");
-			__m512i aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
+			aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
             printAVX (aux_avx, "gath");
 	    #endif
 
@@ -500,9 +500,9 @@ int main (__v32s argc, char const *argv[]){
     //for (int i = 0; i < bloom_filter_size/32; i++) printf ("%u ", bloom_filter[i]);
     //printf ("\n");
 
-    bloom_chk(l_orderkey, v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
-    std::cout << output_count << " positives.\n";
-    printf ("%u\n", l_orderkey[v_size-1]);
+    //bloom_chk(l_orderkey, v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
+    //std::cout << output_count << " positives.\n";
+    //printf ("%u\n", l_orderkey[v_size-1]);
 
     //bloom_confirm (l_orderkey, v_size, o_orderkey, v_size/4);
     bloom_confirm_scalar (o_orderkey, v_size/4, l_orderkey, v_size);
