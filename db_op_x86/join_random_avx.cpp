@@ -160,20 +160,22 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 	do {
 		key = _mm512_maskz_compress_epi32 (k, key);
 		fun = _mm512_maskz_compress_epi32 (k, fun);
+
+
 		printAVX (key, "keys");
 		printAVXInt (key, "keys");
-		fac = _mm512_permutexvar_epi32(fun, mul_factors); //buscamos os fatores multiplicatiovs
-        shi = _mm512_permutexvar_epi32(fun, shift_amounts); //buscamos as quantidades de shift
-		bit = _mm512_mullo_epi32(key, fac); //multiplicação
-		printAVX (bit, "mul ");
-		bit = _mm512_sllv_epi32 (bit,shi);
-		printAVX (bit, "shi ");
-		_mm512_storeu_si512 (aux_vec1, bit);
-		for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size; //mod pelo tamanho do bloom filter
-		bit = _mm512_loadu_si512 (aux_vec1);
-		bit_div = _mm512_srli_epi32(bit, 5);
-		bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4); //buscamos os inteiros
-		bit_mod = _mm512_sllv_epi32(mask_1, _mm512_and_epi32(bit, mask_31)); //descobrimos qual é o bit equivalente no inteiro e posicionamos o bit
+		fac = _mm512_permutexvar_epi32(fun, mul_factors);
+		shi = _mm512_permutexvar_epi32(fun, shift_amounts);
+        bit = _mm512_mullo_epi32 (key, fac);
+		bit = _mm512_mullo_epi32 (bit, fac);
+		bit = _mm512_sllv_epi32 (bit, shi);
+		_mm512_storeu_si512	 (aux_vec1, bit);
+	    for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
+		bit = _mm512_loadu_si512(aux_vec1);
+		__m512i bit_div = _mm512_srli_epi32 (bit, 5);
+        __m512i bit_mod = _mm512_and_epi32 (bit, mask_31);
+		bit = _mm512_sllv_epi32 (mask_1, bit_mod);
+		
 		printAVX (bit_div, "bdiv");
 		printAVX (bit_mod, "bmod");
 		k = _mm512_test_epi32_mask(bit_div, bit_mod); //comparação; sim significa que o essa entrada continua para a próxima função hash
