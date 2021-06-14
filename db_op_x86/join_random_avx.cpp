@@ -140,6 +140,50 @@ void bloom_confirm_scalar (int32_t* vector1, size_t vector1_size, int32_t* vecto
 	printf ("%u positivos reais!\n", result);
 }
 
+void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, int32_t *mask_factors, int32_t* shift_m, int32_t *bloom_filter, size_t bloom_filter_size, int32_t* output, size_t *output_count){
+	size_t i = 0;
+	__mmask16 kk;
+	__mmask16 k = _mm512_int2mask (0xFFFF);
+	__m512i mask_1 = _mm512_set1_epi32 (1);
+	__m512i mask_31 = _mm512_set1_epi32 (31);
+	__m512i fun = _mm512_set1_epi32 (0);
+	__m512i key = _mm512_mask_loadu_epi32(key, k, &input_keys[i]);
+	__m512i mul_factors = _mm512_loadu_si512 ((__m512i*) mask_factors);
+	__m512i shift_amounts = _mm512_loadu_si512 ((__m512i*) shift_m);
+	__m512i fun_max = _mm512_set1_epi32(functions - 1);
+	__m512i fac, shi, bit, bit_div, bit_mod;
+
+	uint32_t* aux_vec1 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
+
+	key = _mm512_load_si512 (&input_keys[0]);
+	
+	do {
+		key = _mm512_maskz_compress_epi32 (k, key);
+		fun = _mm512_maskz_compress_epi32 (k, fun);
+		printAVX (key, "keys");
+		printAVXInt (key, "keys");
+		fac = _mm512_permutexvar_epi32(fun, mul_factors); //buscamos os fatores multiplicatiovs
+        shi = _mm512_permutexvar_epi32(fun, shift_amounts); //buscamos as quantidades de shift
+		bit = _mm512_mullo_epi32(key, fac); //multiplicação
+		_mm512_storeu_si512 (aux_vec1, bit);
+		for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size; //mod pelo tamanho do bloom filter
+		bit = _mm512_loadu_si512 (aux_vec1);
+		bit_div = _mm512_srli_epi32(bit, 5);
+		bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4); //buscamos os inteiros
+		bit_mod = _mm512_sllv_epi32(mask_1, _mm512_and_epi32(bit, mask_31)); //descobrimos qual é o bit equivalente no inteiro e posicionamos o bit
+		k = _mm512_test_epi32_mask(bit_div, bit_mod); //comparação; sim significa que o essa entrada continua para a próxima função hash
+		kk = _mm512_mask_cmpeq_epi32_mask(k, fun, fun_max); //vemos quais entradas chegaram ao índice final
+		_mm512_mask_compressstoreu_epi32(&output[*output_count], kk, key);
+		*output_count += _mm_popcnt_u32(_mm512_mask2int (kk));
+		
+		k = _mm512_kor(_mm512_knot(k), kk);
+		i += _mm_popcnt_u32 (_mm512_mask2int (k));
+		
+		fun = _mm512_add_epi32(fun, mask_1); //somamos 1 a todas aos índices de função hash
+		k = _mm512_knot(k);
+	} while (i < VECTOR_SIZE);
+}
+
 void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_t *mask_factors, int32_t* shift_m, int32_t *bloom_filter, size_t bloom_filter_size, int32_t* output, size_t *output_count){
 	__mmask16 k = _mm512_int2mask (0xFFFF);
 	__m512i mask_1 = _mm512_set1_epi32(1);
