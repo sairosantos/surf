@@ -303,14 +303,14 @@ void bloom_set2 (int32_t* entries, int entries_size, int32_t* bloom_filter, size
 			bit = _mm512_mullo_epi32 (bit, fac);
 			bit = _mm512_sllv_epi32 (bit, shi);
 			_mm512_storeu_si512	 (aux_vec1, bit);
-			for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
+			for (int x = 0; x < VECTOR_SIZE; x++) aux_vec1[x] %= bloom_filter_size;
 			bit = _mm512_loadu_si512(aux_vec1);
 			bit_div = _mm512_srli_epi32 (bit, 5);
 			bit_mod = _mm512_and_epi32 (bit, mask_31);
 			bit_mod = _mm512_sllv_epi32 (mask_1, bit_mod);
 			_mm512_storeu_si512 (aux_vec1, bit_mod);
 			_mm512_storeu_si512 (aux_vec2, bit_div);
-			for (int i = 0; i < VECTOR_SIZE; i++) bloom_filter[aux_vec2[i]] = bloom_filter[aux_vec2[i]] | aux_vec1[i];
+			for (int x = 0; x < VECTOR_SIZE; x++) bloom_filter[aux_vec2[x]] = bloom_filter[aux_vec2[x]] | aux_vec1[x];
 			fun = _mm512_add_epi32 (mask_1, fun);
 		}
 	}
