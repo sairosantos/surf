@@ -128,127 +128,6 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 	} while (i < VECTOR_SIZE);
 }
 
-void bloom_chk (int32_t *input_keys, size_t input_size, size_t functions, int32_t *mask_factors, int32_t* shift_m, int32_t *bloom_filter, size_t bloom_filter_size, int32_t* output, size_t *output_count){
-	__mmask16 k = _mm512_int2mask (0xFFFF);
-	__m512i mask_1 = _mm512_set1_epi32(1);
-	__m512i mask_31 = _mm512_set1_epi32(31);
-	__m512i mask_0 = _mm512_set1_epi32(0);
-	__m512i key, val;
-	__m512i fun = _mm512_set1_epi32(0);
-	__m512i mul_factors = _mm512_loadu_si512 ((__m512i*) mask_factors);
-	__m512i shift_amounts = _mm512_loadu_si512 ((__m512i*) shift_m);
-	__m512i fun_max = _mm512_set1_epi32(functions - 1);
-
-	#if PRINT_CHECK
-		printAVX (mask_1, "mask_1  ");
-		printAVX (mask_31, "mask_31 ");
-		printAVX (mask_0, "mask_0  ");
-		printAVX (mul_factors, "mul_fact");
-		printAVX (shift_amounts, "shift_am");
-		printf ("---------------------------------------------------------------------------\n");
-	#endif
-
-	/*for (int i = 0; i < input_size; i++) {
-		printf ("%u ", input_keys[i]);
-		if (i % 16 == 0) printf ("\n%d: ", i+1);
-	}
-	printf ("\n");*/
-
-	uint32_t* aux_vec1 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
-	size_t i = 0, j = 16, o = 0;
-
-	key = _mm512_mask_loadu_epi32(key, k, &input_keys[i]);
-	do {
-		key = _mm512_maskz_compress_epi32 (k, key);
-		fun = _mm512_maskz_compress_epi32 (k, fun);
-		//printAVX (key, "keys");
-		key = _mm512_mask_loadu_epi32 (key, load_masks[j], &input_keys[i-(VECTOR_SIZE-j)]); 
-		//carregamos novas entradas nos espaços liberados na rodada anterior
-		//printAVX (key,  "keys");
-		i += j;
-		//fun = _mm512_mask_xor_epi32(fun, k, fun, fun); //setamos em qual função hash as entradas novas estao (0)
-
-		//printAVX (fun, "func");
-
-		__m512i fac = _mm512_permutexvar_epi32(fun, mul_factors); //buscamos os fatores multiplicatiovs
-        	__m512i shi = _mm512_permutexvar_epi32(fun, shift_amounts); //buscamos as quantidades de shift
-		__m512i bit = _mm512_mullo_epi32(key, fac); //multiplicação
-
-		#if PRINT_CHECK
-			printAVX (key, "key     ");
-			printAVXInt (key, "key     ");
-			printAVX (fun, "fun     ");
-			printAVXInt (fac, "fac     ");
-			printAVX (fac, "fac     ");
-			printAVX (shi, "shi     ");
-			printAVX (bit, "res_mul ");
-			printAVXInt (bit, "res_mul ");
-		#endif
-		bit = _mm512_sllv_epi32 (bit,shi); //shift
-		#if PRINT_CHECK
-			printAVX (bit, "res_hash");
-		#endif
-		_mm512_storeu_si512 (aux_vec1, bit);
-		for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size; //mod pelo tamanho do bloom filter
-		bit = _mm512_loadu_si512 (aux_vec1);
-		__m512i bit_div = _mm512_srli_epi32(bit, 5); //dividimos por 32 para chegar aos índices dentro do BF
-		#if PRINT_CHECK
-			printAVX (bit, "res_mod ");
-			printAVX (bit_div, "indices ");
-			printAVXInt (bit_div, "indices ");
-		#endif
-        	bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4); //buscamos os inteiros
-       
-		__m512i bit_mod = _mm512_sllv_epi32(mask_1, _mm512_and_epi32(bit, mask_31)); //descobrimos qual é o bit equivalente no inteiro e posicionamos o bit
-		k = _mm512_test_epi32_mask(bit_div, bit_mod); //comparação; sim significa que o essa entrada continua para a próxima função hash
-		#if PRINT_CHECK
-			printAVX (bit_div, "bit_div ");
-			printAVX (bit_mod, "bit_mod ");
-		#endif
-		__mmask16 kk = _mm512_mask_cmpeq_epi32_mask(k, fun, fun_max); //vemos quais entradas chegaram ao índice final
-		#if PRINT_CHECK
-			printInt (_mm512_mask2int (k), "k       ");
-			printInt (_mm512_mask2int (kk), "kk      ");
-			printInt (_mm512_mask2int (_mm512_knot (k)), "inv-k   ");
-			//printf   ("j = %lu, output_count = %lu\n", j, *output_count);
-		#endif
-		_mm512_mask_compressstoreu_epi32(&output[*output_count], kk, key); //armazenamos as que estavam no índice final e passaram
-		//printInt (_mm512_mask2int(kk), "kk  ");
-
-		#if PRINT_CHECK
-			//printAVX (key, "key   ");
-			//printInt (_mm512_mask2int(kk), "kk      ");
-			//for (int i = 0; i < VECTOR_SIZE; i++) printf ("%u ", output[*output_count + i]);
-			//printf ("\n");
-		#endif
-
-		j = 0;
-		//int aux = _mm512_mask2int(kk); //essas vão sair porque deram positivo no último nível
-		//j = _mm_popcnt_u32 (aux);
-		//*output_count += j;
-		//aux = _mm512_mask2int(_mm512_knot(k)); //essas vão sair porque deram negativo em algum nível
-		//j += _mm_popcnt_u32 (aux);
-		int essa_bosta = _mm_popcnt_u32(_mm512_mask2int (kk));
-		*output_count  += _mm_popcnt_u32(_mm512_mask2int (kk));
-		k = _mm512_kor(_mm512_knot(k), kk);
-		j += _mm_popcnt_u32 (_mm512_mask2int (k));
-		//printf ("pos = %d, j = %lu, i = %lu\n\n", essa_bosta, j, i);
-		//printf ("j = %lu\n", j);
-		#if PRINT_CHECK
-			printAVX (bit_div, "gather  ");
-			printAVX (bit_mod, "bitinint");
-			//printInt (aux, "k       ");
-			printInt (_mm512_mask2int(kk), "kk      ");
-			printAVX (fun,     "mt_fac+1");
-			printf ("i = %lu, j = %lu, output_count = %lu\n", i, j, *output_count);
-			printf ("---------------------------------------------------------------------------\n");
-		#endif
-		fun = _mm512_add_epi32(fun, mask_1); //somamos 1 a todas aos índices de função hash
-		k = _mm512_knot(k);
-		//printf ("i = %lu, output_count = %lu\n", i, *output_count); 
-	} while (i <= input_size);
-}
-
 int* bloom_create (int n, float p, size_t *size, size_t *functions){
     *size = ceil((n * log(p)) / log(1 / pow(2, log(2))));
     *functions = round((*size / n) * log(2));
@@ -275,8 +154,6 @@ void bloom_set_scalar (int32_t* entries, int entries_size, int32_t* bloom_filter
 }
 
 void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, size_t bloom_filter_size, int32_t* factors, int32_t* shift_m, size_t functions){
-	if (entries_size < VECTOR_SIZE) bloom_set_scalar (entries, entries_size, bloom_filter, bloom_filter_size, factors, shift_m, functions);
-
 	__m512i mask_1 = _mm512_set1_epi32(1);
 	__m512i mask_31 = _mm512_set1_epi32(31);
 
@@ -286,8 +163,7 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 	__m512i fun = _mm512_set1_epi32(0);
 	uint32_t *aux_vec1 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
 	uint32_t *aux_vec2 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
-	//printAVXInt (key, "keys");
-
+	
 	for (int j = 0; j < functions; j++) {
         __m512i fac = _mm512_permutexvar_epi32(fun, facts);
 		__m512i shi = _mm512_permutexvar_epi32(fun, shift);
@@ -300,103 +176,13 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 		__m512i bit_div = _mm512_srli_epi32 (bit, 5);
         __m512i bit_mod = _mm512_and_epi32 (bit, mask_31);
 		bit_mod = _mm512_sllv_epi32 (mask_1, bit_mod);
-		
-		#if PRINT_SET
-		printAVXInt (bit, "posi");
-	    	printAVX (bit_mod, "inti");
-			__m512i aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
-            printAVX (aux_avx, "gath");
-	    #endif
 
 		_mm512_storeu_si512 (aux_vec1, bit_mod);
 	    _mm512_storeu_si512 (aux_vec2, bit_div);
 		for (int i = 0; i < VECTOR_SIZE; i++) bloom_filter[aux_vec2[i]] = bloom_filter[aux_vec2[i]] | aux_vec1[i];
 
-		#if PRINT_SET
-			aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
-            printAVX (aux_avx, "gath");
-	    #endif
-
 		fun = _mm512_add_epi32 (mask_1, fun);
 	}
-}
-
-void bloom_set(int32_t* entries, size_t entries_size, int32_t* bloom_filter, size_t bloom_filter_size, int32_t* factors, int32_t* shift_m, size_t functions){
-    __mmask16 mask_k = _mm512_int2mask (0xFFFF);
-	__m512i mask_31 = _mm512_set1_epi32(31);
-	__m512i mask_1 = _mm512_set1_epi32(1);
-	__m512i mask_0 = _mm512_set1_epi32(0);
-	__m512i facts = _mm512_loadu_si512((__m512i*) factors);
-	__m512i shift = _mm512_loadu_si512((__m512i*) shift_m);
-	#if PRINT_SET
-		printAVX (mask_31, "mask_31 ");
-		printAVX (mask_1, "mask_1  ");
-		printAVX (mask_0, "mask_0  ");
-		printAVX (facts, "facts   ");
-		printAVX (shift, "shift   ");
-		printf ("-----------------------------------------------------------\n");
-	#endif
-	uint32_t *aux_vec1 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
-	uint32_t *aux_vec2 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
-
-    __m512i key, aux, fun, fac, bit, bit_div, bit_mod;
-	
-    for (int i = 0; i < entries_size; i += VECTOR_SIZE){
-	    __m512i key = _mm512_mask_loadu_epi32(key, mask_k, &entries[i]);
-	    fun = _mm512_set1_epi32(0);
-		for (int j = 0; j < functions; j++){
-            bit = key;
-            fac = _mm512_permutexvar_epi32(fun, facts);
-            bit = _mm512_mullo_epi32 (bit, fac);
-	    #if PRINT_SET
-		printAVX (key, "entries ");
-		printAVX (fac, "mult_fac");
-		printAVX (bit, "res_mult");
-	    #endif
-            bit = _mm512_sllv_epi32 (bit, shift);
-	    #if PRINT_SET
-	    	printAVX (bit, "res_hash");
-	    #endif
-	    _mm512_storeu_si512	 (aux_vec1, bit);
-	    for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
-	    //printf ("\n");
-            bit = _mm512_loadu_si512(aux_vec1);
-            bit_div = _mm512_srli_epi32 (bit, 5);
-            //bit_div = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
-            bit_mod = _mm512_and_epi32 (bit, mask_31);
-	    #if PRINT_SET
-		printAVX (bit, "res_mod ");
-		printAVX (bit_div, "div32   ");
-	   	printAVX (bit_mod, "bitinint");
-	    #endif
-            bit = _mm512_sllv_epi32 (mask_1, bit_mod);
-	    #if PRINT_SET
-	    	printAVX (bit, "position");
-		__m512i aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
-            	printAVX (aux_avx, "gather  ");
-	    #endif
-            //bit = _mm512_or_epi32 (bit_div, bit);
-
-	    _mm512_storeu_si512 (aux_vec1, bit);
-	    _mm512_storeu_si512 (aux_vec2, bit_div);
-	    for (int i = 0; i < VECTOR_SIZE; i++) {
-		//printf ("bloom_filter[%u] = %u\n", aux_vec2[i], bloom_filter[aux_vec2[i]]);
-		bloom_filter[aux_vec2[i]] = bloom_filter[aux_vec2[i]] | aux_vec1[i];
-		//printf ("bloom_filter[%u] = %u\n", aux_vec2[i], bloom_filter[aux_vec2[i]]);
-	    }
-	    fun = _mm512_add_epi32 (mask_1, fun);
-
-	    #if PRINT_SET
-		printAVX (fun, "functn+1");
-	    	aux_avx = _mm512_i32gather_epi32 (bit_div, bloom_filter, 4);
-            	printAVX (aux_avx, "gather  ");
-		printf ("-----------------------------------------------------------\n");
-	    #endif
-
-	    //printf ("\n");
-            //_mm512_i32scatter_epi32 (bloom_filter, bit_div, bit, 4);
-        }
-    }
 }
 
 void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries, size_t entries_size){
@@ -440,7 +226,7 @@ void populate_vector (int* vector, size_t v_size, int value){
 }
 
 void populate_vector (int* vector, size_t v_size){
-    for (int i = 0; i < v_size; i++) vector[i] = rand() % UINT32_MAX;
+    for (int i = 0; i < v_size; i++) vector[i] = rand() % (v_size*100);
 }
 
 int main (__v32s argc, char const *argv[]){
@@ -451,7 +237,6 @@ int main (__v32s argc, char const *argv[]){
     int *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
     int prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
-    //int other = atoi(argv[2]);
     
     int32_t v_size = (1024 * 1024 * vector_size)/sizeof(int);
     o_orderkey = (int*) aligned_alloc (64, (int) v_size/4 * sizeof (int));
@@ -459,11 +244,11 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
-    loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
+    //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
+    //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    //populate_vector (o_orderkey, (int) v_size/4);
-    //populate_vector (l_orderkey, v_size);
+    populate_vector (o_orderkey, (int) v_size/4);
+    populate_vector (l_orderkey, v_size);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
@@ -485,28 +270,14 @@ int main (__v32s argc, char const *argv[]){
         shift_amounts[i] = i;
     }
 
-    for (int i = 0; i < VECTOR_SIZE; i++) {
-	load_masks[i] = _mm512_int2mask (UINT16_MAX - (std::pow (2, VECTOR_SIZE-i)-1));
-	//printf ("%d ", i);
-    	//printInt (_mm512_mask2int (load_masks[i]), "wtv");
-    }
-    load_masks[VECTOR_SIZE] = _mm512_int2mask (UINT16_MAX);
-    //printInt (_mm512_mask2int (load_masks[VECTOR_SIZE]), "wtv");
-
     ORCS_tracing_start();
 
     for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set_step (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
     for (int i = 0; i < v_size; i += VECTOR_SIZE) bloom_chk_step (&l_orderkey[i], v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
     printf ("output_count = %lu\n", output_count);
-    //for (int i = 0; i < output_count; i++) printf ("%u ", output[i]);
-    printf ("\n\n");
-    printf ("vector: ");
+    
     bloom_confirm (output, output_count, o_orderkey, v_size/4);
-    printf ("scalar: ");
-    bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
-    bloom_confirm (l_orderkey, v_size, o_orderkey, v_size/4);
-    bloom_confirm_scalar (l_orderkey, v_size, o_orderkey, v_size/4);
-
+    
     free (o_orderkey);
     free (l_orderkey);
     free (hash_function_factors);

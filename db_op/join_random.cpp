@@ -21,29 +21,9 @@ using namespace std;
 
 void __attribute__ ((noinline)) ORCS_tracing_start() {
     asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
 }
 
 void __attribute__ ((noinline)) ORCS_tracing_stop() {
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
-    asm volatile ("nop");
     asm volatile ("nop");
 }
 
@@ -304,8 +284,8 @@ int main (__v32s argc, char const *argv[]){
     o_orderkey = (uint32_t*) malloc ((uint32_t) v_size/4 * sizeof (uint32_t));
     l_orderkey = (uint32_t*) malloc (v_size * sizeof (uint32_t));
 
-    //loadDateColumn (o_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
-    //loadDateColumn (l_orderkey, v_size * 4, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
+    //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
+    //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
     populate_vector (o_orderkey, v_size/4);
     populate_vector (l_orderkey, v_size);
@@ -332,22 +312,14 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_start();
 
     bloom_set (o_orderkey, (uint32_t) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
-    //bloom_chk (vector1, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
-    //std::cout << output_count << " positives.\n";
-
+    
     bloom_chk (l_orderkey, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
     std::cout << output_count << " positives.\n";
 
     bloom_confirm (output, output_count, o_orderkey, v_size/4);
 
-    //std::cout << bloom_filter[bloom_filter_size-1];
-    //std::cout << l_orderkey[(v_size*4)-1];
-    //std::cout << output[output_count];
-
     free (o_orderkey);
     free (l_orderkey);
-    //free (bloom_filter);
-    //free (output);
     free (hash_function_factors);
     free (shift_amounts);
 }
