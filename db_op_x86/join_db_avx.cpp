@@ -269,7 +269,7 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = i % 5;
+        shift_amounts[i] = i;
     }
 
     ORCS_tracing_start();
@@ -277,12 +277,12 @@ int main (__v32s argc, char const *argv[]){
     for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set_step (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
     for (int i = 0; i < v_size; i += VECTOR_SIZE) bloom_chk_step (&l_orderkey[i], v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
     printf ("output_count = %lu\n", output_count);
-    printf ("vector: ");
+    //printf ("vector: ");
     bloom_confirm (output, output_count, o_orderkey, v_size/4);
-    printf ("scalar: ");
-    bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
-    bloom_confirm (l_orderkey, v_size, o_orderkey, v_size/4);
-    bloom_confirm_scalar (l_orderkey, v_size, o_orderkey, v_size/4);
+    //printf ("scalar: ");
+    //bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
+    //bloom_confirm (l_orderkey, v_size, o_orderkey, v_size/4);
+    //bloom_confirm_scalar (l_orderkey, v_size, o_orderkey, v_size/4);
 
     free (o_orderkey);
     free (l_orderkey);

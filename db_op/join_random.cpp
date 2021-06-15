@@ -288,7 +288,7 @@ void populate_vector (uint32_t* vector, size_t v_size, uint32_t value){
 }
 
 void populate_vector (uint32_t* vector, size_t v_size){
-    for (int i = 0; i < v_size; i++) vector[i] = rand() % UINT32_MAX;
+    for (int i = 0; i < v_size; i++) vector[i] = rand() % (v_size*100);
 }
 
 int main (__v32s argc, char const *argv[]){
