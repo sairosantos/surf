@@ -292,7 +292,7 @@ int main (__v32s argc, char const *argv[]){
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
-    double p = 0.001;
+    double p = 0.0001;
     uint32_t output_count = 0;
     
     uint32_t *bloom_filter = bloom_create ((uint32_t) v_size/4, p, &bloom_filter_size, &hash_functions);
