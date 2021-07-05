@@ -1,11 +1,11 @@
 #!/bin/bash
-HOME="/home/srsantos/Experiment"
+HOME="/home/sairo/Experiment"
 SIM_HOME=$HOME"/OrCS"
 PIN_HOME=$SIM_HOME"/trace_generator/pin"
 SINUCA_TRACER_HOME=$SIM_HOME"/trace_generator/extras/pinplay/bin/intel64/sinuca_tracer.so"
 CODE_HOME=$HOME"/surf/db_op"
 COMP_FLAGS="-O2 -DNOINLINE -static"
-SIZES=(1 20 40) # 256 8192 1048576)
+SIZES=(1) # 256 8192 1048576)
 
 cd $CODE_HOME
 

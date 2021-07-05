@@ -259,7 +259,7 @@ void populate_vector (uint32_t* vector, size_t v_size, string filename){
         openfile.close();
     }
     if (count < v_size){
-        for (int i = count; i < v_size; i++) vector[i] = rand() % UINT32_MAX;
+        for (int i = count; i < v_size; i++) vector[i] = rand() % (v_size*100);
     }
 }
 
