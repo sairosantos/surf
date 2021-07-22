@@ -28,7 +28,7 @@ int main (int argc, char const *argv[]) {
     }
     myfile.close();
 
-    uint32_t* vector = (uint32_t*) malloc (v_size * sizeof (uint32_t));
+    /*uint32_t* vector = (uint32_t*) malloc (v_size * sizeof (uint32_t));
 
     string line;
     ifstream openfile (argv[2]);
@@ -38,7 +38,7 @@ int main (int argc, char const *argv[]) {
             stoi(line);
         }
         openfile.close();
-    }
+    }*/
 
     return 0;
 }

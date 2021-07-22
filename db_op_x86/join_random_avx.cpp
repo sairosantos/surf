@@ -213,11 +213,11 @@ void populate_vector (int* vector, size_t v_size, string filename){
     string line;
     ifstream openfile (filename);
     if (openfile.is_open()) {
-        while (getline (openfile,line)) vector[count++] = stoi(line);
+        while (getline (openfile,line) && count <= v_size) vector[count++] = stoi(line);
         openfile.close();
     }
     if (count < v_size){
-        for (int i = count; i < v_size; i++) vector[i] = rand() % UINT32_MAX;
+        for (int i = count; i < v_size; i++) vector[i] = rand() % (v_size*100);
     }
 }
 
@@ -247,8 +247,11 @@ int main (__v32s argc, char const *argv[]){
     //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
     //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    populate_vector (o_orderkey, (int) v_size/4);
-    populate_vector (l_orderkey, v_size);
+    std::string file1(argv[2]);
+    std::string file2(argv[3]);
+
+    populate_vector (o_orderkey, (int) v_size/4, file1);
+    populate_vector (l_orderkey, v_size, file2);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
@@ -277,7 +280,7 @@ int main (__v32s argc, char const *argv[]){
     printf ("output_count = %lu\n", output_count);
     
     bloom_confirm (output, output_count, o_orderkey, v_size/4);
-    
+
     free (o_orderkey);
     free (l_orderkey);
     free (hash_function_factors);
