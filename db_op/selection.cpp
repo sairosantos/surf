@@ -87,8 +87,8 @@ int main (__v32s argc, char const *argv[]){
     bitmap = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (1, &bitmap[j]);
 
-    filter_vec = (uint32_t*) malloc (v_size * sizeof (uint32_t));
-    for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (filter, &filter_vec[j]);
+    filter_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
+    _vim2K_imovu (filter, filter_vec);
 
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     //srand (time(NULL));
@@ -97,10 +97,10 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_start();
 
     for (int i = 0; i < v_size; i += VECTOR_SIZE){
-        _vim2K_isltu (&filter_vec[i], &vector1[i], &bitmap[i]);
+        _vim2K_isltu (filter_vec, &vector1[i], &bitmap[i]);
     }
 
-    std::cout << filter_vec[v_size-1];
+    std::cout << filter_vec[VECTOR_SIZE-1];
     std::cout << vector1[v_size-1];
     std::cout << bitmap[v_size-1];
 

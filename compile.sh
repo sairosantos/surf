@@ -1,5 +1,5 @@
 #!/bin/bash
-HOME="/home/sairo/Experiment"
+HOME="/home/srsantos/Experiment"
 SIM_HOME=$HOME"/OrCS"
 PIN_HOME=$SIM_HOME"/trace_generator/pin"
 SINUCA_TRACER_HOME=$SIM_HOME"/trace_generator/extras/pinplay/bin/intel64/sinuca_tracer.so"

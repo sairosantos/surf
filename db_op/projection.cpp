@@ -93,11 +93,11 @@ int main (__v32s argc, char const *argv[]){
     vector_size = atoi(argv[1]);
     
     __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
-    bitmap = (uint32_t*) malloc (v_size * sizeof (uint32_t));
-    for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (1, &bitmap[j]);
+    bitmap = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
+    _vim2K_imovu (1, bitmap);
 
-    filter_vec = (uint32_t*) malloc (v_size * sizeof (uint32_t));
-    for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (filter, &filter_vec[j]);
+    filter_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
+    _vim2K_imovu (filter, filter_vec);
 
     result = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
@@ -109,17 +109,14 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_start();
 
     for (int i = 0; i < v_size; i += VECTOR_SIZE){
-        _vim2K_isltu (&filter_vec[i], &vector1[i], &bitmap[i]);
-    }
-
-    for (int i = 0; i < v_size; i += VECTOR_SIZE){
-        _vim2K_ilmku (&vector2[i], &bitmap[i], &result[i]);
+        _vim2K_isltu (filter_vec, &vector1[i], bitmap);
+        _vim2K_ilmku (&vector2[i], bitmap, &result[i]);
     }
 
     std::cout << vector1[v_size-1];
     std::cout << vector2[v_size-1];
-    std::cout << bitmap[v_size-1];
-    std::cout << filter_vec[v_size-1];
+    std::cout << bitmap[VECTOR_SIZE-1];
+    std::cout << filter_vec[VECTOR_SIZE-1];
     std::cout << result[v_size-1];
 
     free (bitmap);
