@@ -50,7 +50,7 @@ int main (int argc, char const *argv[]) {
 
     for (int i = 0; i < v_size/4; i++) vec1[i] = i;
     for (int i = 0; i < v_size; i++) {
-        if (i % prob == 0) vec2[i] = vec1[i/4];
+        if (i % 10 < prob && prob != 0) vec2[i] = vec1[i/4];
         else vec2[i] = rand() % v_size*100;
     }
 
@@ -68,7 +68,7 @@ int main (int argc, char const *argv[]) {
 
     std::cout << "vec1 = " << v_size/4 << " elementos.\n";
     std::cout << "vec2 = " << v_size << " elementos.\n";
-    bloom_confirm (vec1, v_size/4, vec2, v_size);
+    //bloom_confirm (vec2, v_size, vec1, v_size/4);
 
     /*uint32_t* vector = (uint32_t*) malloc (v_size * sizeof (uint32_t));
 

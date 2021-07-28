@@ -1,5 +1,5 @@
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
+//#include <boost/tokenizer.hpp>
+//#include <boost/algorithm/string.hpp>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,7 +56,7 @@ void printAVXInt (__m512i vec, std::string string){
 	free (store);
 }
 
-void loadIntegerColumn (int* data_vector, uint32_t v_size, string file_path, int column){
+/*void loadIntegerColumn (int* data_vector, uint32_t v_size, string file_path, int column){
     ifstream data(file_path);
     string line;
     vector<string> tokens;
@@ -68,7 +68,7 @@ void loadIntegerColumn (int* data_vector, uint32_t v_size, string file_path, int
         data_vector[count++] = stoi (tokens[column]);
         if (count == v_size) break;
     }
-}
+}*/
 
 void bloom_confirm_scalar (int32_t* vector1, size_t vector1_size, int32_t* vector2, size_t vector2_size){
 	int32_t result = 0;
@@ -233,10 +233,11 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_stop();
 
     srand(time(NULL));
-    int vector_size;
+    int vector_size, prob;
     int *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
     int prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
+    prob = atoi(argv[2]);
     
     int32_t v_size = (1024 * 1024 * vector_size)/sizeof(int);
     o_orderkey = (int*) aligned_alloc (64, (int) v_size/4 * sizeof (int));
@@ -244,14 +245,11 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
-    //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
-
-    std::string file1(argv[2]);
-    std::string file2(argv[3]);
-
-    populate_vector (o_orderkey, (int) v_size/4, file1);
-    populate_vector (l_orderkey, v_size, file2);
+    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand();
+    for (int i = 0; i < v_size; i++) {
+        if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
+        else l_orderkey[i] = rand();
+    }
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
