@@ -320,6 +320,8 @@ int main (__v32s argc, char const *argv[]){
     //bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
     //bloom_confirm_scalar (l_orderkey, v_size, o_orderkey, v_size/4);
 
+    ORCS_tracing_stop();
+
     free (o_orderkey);
     free (l_orderkey);
     free (hash_function_factors);

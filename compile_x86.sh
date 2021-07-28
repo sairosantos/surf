@@ -17,7 +17,7 @@ if [ ! -d "traces" ]; then
 	mkdir -p "traces"
 fi
 
-for i in *512.cpp
+for i in join_random_avx.cpp
 do 
     rm exec/${i%.cpp}.out
     g++ $i $COMP_FLAGS -o exec/${i%.cpp}.out
