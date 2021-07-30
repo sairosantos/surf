@@ -245,7 +245,7 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand();
+    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand() % (v_size/4)*2;
     for (int i = 0; i < v_size; i++) {
         if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
         else l_orderkey[i] = rand();

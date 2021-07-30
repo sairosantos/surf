@@ -18,7 +18,7 @@ for t in "${THREADS[@]}"
 do
     echo "THREADS: ${t}"
     cd $TRACE_HOME
-    for i in join_random_avx_*.1MB.${t}t.tid0.stat.out.gz
+    for i in join_random_avx_confirm*.1MB.${t}t.tid0.stat.out.gz
     do 
         cd $SIM_HOME
         TRACE=${i%.tid0.stat.out.gz}

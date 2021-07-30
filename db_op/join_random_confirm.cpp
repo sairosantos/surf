@@ -214,7 +214,7 @@ void bloom_chk(uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, s
 
 void bloom_confirm_scalar (uint32_t* positives, size_t positives_size, uint32_t* entries, size_t entries_size){
     int result = 0;
-    for (int i = 0; i < positives_size; i++){
+    for (int i = positives_size; i > positives_size - (positives_size/4); i--){
         for (int j = 0; j < entries_size; j++){
             if (positives[i] == entries[j]) {
                 result++;
@@ -231,7 +231,7 @@ void bloom_confirm (uint32_t* positives, size_t positives_size, uint32_t* entrie
     uint32_t* vector = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
     uint32_t* check = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
     _vim2K_imovu (0, check);
-    for (int i = 0; i < positives_size/8; i++){
+    for (int i = 0; i < positives_size/2; i++){
         _vim2K_imovu (positives[i], vector);
         for (int j = 0; j < entries_size; j += VECTOR_SIZE){
             count = 0;
@@ -284,10 +284,10 @@ int main (__v32s argc, char const *argv[]){
     //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
     //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand();
+    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = v_size + i;
     for (int i = 0; i < v_size; i++) {
         if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
-        else l_orderkey[i] = rand();
+        else l_orderkey[i] = i;
     }
 
     size_t bloom_filter_size = 0;

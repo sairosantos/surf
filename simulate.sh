@@ -5,7 +5,7 @@ CODE_HOME=$HOME"/surf/db_op"
 TRACE_HOME=$CODE_HOME"/traces"
 THREADS=(1)
 VECTOR_SIZE=(8K)
-CACHE_SIZE=(32 256)
+CACHE_SIZE=(256)
 DATE_TIME=$(date '+%d%m%Y_%H%M%S');
 
 cd $CODE_HOME
@@ -18,7 +18,7 @@ for t in "${THREADS[@]}"
 do
     echo "THREADS: ${t}"
     cd $TRACE_HOME
-    for i in join_random.20MB*${t}t.tid0.stat.out.gz
+    for i in join_random_probe.1MB_*.${t}t.tid0.stat.out.gz
     do 
         cd $SIM_HOME
         TRACE=${i%.tid0.stat.out.gz}

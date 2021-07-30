@@ -192,7 +192,7 @@ void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries,
     __mmask16 mask;
     int i, j;
 
-    for (i = 0; i < positives_size/8; i++){
+    for (i = 0; i < positives_size; i++){
         vector = _mm512_set1_epi32 (positives[i]);
         for (j = 0; j < entries_size; j += VECTOR_SIZE){
             entries_vec = _mm512_load_si512 (&entries[j]);
@@ -245,7 +245,7 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand();
+    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand() % (v_size/4)*2;
     for (int i = 0; i < v_size; i++) {
         if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
         else l_orderkey[i] = rand();
