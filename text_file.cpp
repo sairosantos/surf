@@ -42,52 +42,28 @@ int main (int argc, char const *argv[]) {
     srand (time(NULL));
 
     uint8_t vector_size = atoi(argv[1]);
-    uint32_t v_size = (1024 * 128 * vector_size)/sizeof(__v32u);
+    uint32_t prob = atoi(argv[2]);
+    uint32_t v_size = (1024 * 1024 * vector_size)/sizeof(__v32u) + 10;
 
     uint32_t* vec1 = (uint32_t*) malloc (v_size/4 * sizeof(uint32_t));
     uint32_t* vec2 = (uint32_t*) malloc (v_size * sizeof(uint32_t));
 
-    for (int i = 0; i < v_size/4; i++) vec1[i] = i + v_size;
+    uint32_t max = 0;
+    for (int i = 0; i < v_size/4; i++) {
+        vec1[i] = i + (rand() % UINT32_MAX/5);
+        if (vec1[i] > max) max = vec1[i];
+    }
     for (int i = 0; i < v_size; i++) {
-        if (i % 10 == 0) vec2[i] = vec1[i/4];
-        else vec2[i] = i;
+        if (i % 10 < prob) vec2[i] = vec1[i/4];
+        else vec2[i] = max + (rand() % UINT32_MAX/10);
     }
-
-    int count = 0;
-    for (int i = 0; i < v_size/4; i++){
-        for (int j = 0; j < v_size; j++){
-            if (vec1[i] == vec2[j]) {
-                count++;
-                break;
-            }
-        }
-    }
-
-    std::cout << "vec1 = " << v_size/4 << " elementos.\n";
-    std::cout << "vec2 = " << v_size << " elementos.\n";
-    std::cout << count << " elementos iguais.\n";
-
-    /*ofstream myfile;
-    ofstream myfile2;
-    int number = 0;
-
-    myfile.open (argv[2]);
-    myfile2.open (argv[3]);
-    for (int i = 0; i < v_size; i++) {
-        number = (rand() % v_size*10);
-        myfile << number << "\n";
-        if (i % 10 != 0) number = (rand() % v_size*10);
-        myfile2 << number << "\n";
-    }
-
-    //bloom_confirm (vec1, v_size/4, vec2, v_size);
 
     ofstream myfile, myfile2;
-    myfile.open (argv[2]);
-    myfile2.open (argv[3]);
+    myfile.open (argv[3]);
+    myfile2.open (argv[4]);
     
-    for (int i = 0; i < v_size/4; i++) myfile << vec1[i] << "\n";
-    for (int i = 0; i < v_size; i++) myfile2 << vec2[i] << "\n";
+    for (int i = 0; i <= v_size/4; i++) myfile << vec1[i] << "\n";
+    for (int i = 0; i <= v_size; i++) myfile2 << vec2[i] << "\n";
 
     myfile.close();
     myfile2.close();

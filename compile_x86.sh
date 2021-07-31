@@ -6,7 +6,7 @@ SINUCA_TRACER_HOME=$SIM_HOME"/trace_generator/extras/pinplay/bin/intel64/sinuca_
 CODE_HOME=$HOME"/surf/db_op_x86"
 COMP_FLAGS="-O2 -DNOINLINE -static -mavx2 -march=native"
 SIZES=(20) # 256 8192 1048576)
-PROBS=(0)
+PROBS=(0 1 2 3 4 5 6 7 8 9 10)
 
 cd $CODE_HOME
 

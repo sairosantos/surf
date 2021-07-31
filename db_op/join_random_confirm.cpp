@@ -284,10 +284,14 @@ int main (__v32s argc, char const *argv[]){
     //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
     //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
 
-    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = v_size + i;
+    uint32_t max = 0;
+    for (int i = 0; i < v_size/4; i++) {
+        o_orderkey[i] = i + rand();
+        if (o_orderkey[i] > max) max = o_orderkey[i];
+    }
     for (int i = 0; i < v_size; i++) {
         if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
-        else l_orderkey[i] = i;
+        else l_orderkey[i] = max + rand();
     }
 
     size_t bloom_filter_size = 0;
@@ -306,7 +310,7 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = i;
+        shift_amounts[i] = rand() % 7;
     }
 
     bloom_set (o_orderkey, (uint32_t) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);

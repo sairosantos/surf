@@ -212,8 +212,8 @@ void bloom_chk_step (int32_t *input_keys, size_t input_size, size_t functions, i
 		fun = _mm512_maskz_compress_epi32 (k, fun);
 		fac = _mm512_permutexvar_epi32(fun, mul_factors);
 		shi = _mm512_permutexvar_epi32(fun, shift_amounts);
-        bit = _mm512_mullo_epi32 (key, fac);
-		bit = _mm512_mullo_epi32 (bit, fac);
+        	bit = _mm512_mullo_epi32 (key, fac);
+		//bit = _mm512_mullo_epi32 (bit, fac);
 		bit = _mm512_sllv_epi32 (bit, shi);
 		_mm512_storeu_si512	 (aux_vec1, bit);
 	    for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
@@ -353,7 +353,7 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
         __m512i fac = _mm512_permutexvar_epi32(fun, facts);
 		__m512i shi = _mm512_permutexvar_epi32(fun, shift);
         __m512i bit = _mm512_mullo_epi32 (key, fac);
-		bit = _mm512_mullo_epi32 (bit, fac);
+		//bit = _mm512_mullo_epi32 (bit, fac);
 		bit = _mm512_sllv_epi32 (bit, shi);
 		_mm512_storeu_si512	 (aux_vec1, bit);
 	    for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
@@ -394,11 +394,12 @@ void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries,
 }
 
 void populate_vector (int* vector, size_t v_size, string filename){
+    std::cout << filename << "\n";
     int count = 0;
     string line;
     ifstream openfile (filename);
     if (openfile.is_open()) {
-        while (getline (openfile,line) && count <= v_size) vector[count++] = stoi(line);
+        while (getline (openfile,line) && count < v_size) vector[count++] = stoi(line);
         openfile.close();
     }
     if (count < v_size){
@@ -418,11 +419,11 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_stop();
 
     srand(time(NULL));
-    int vector_size, prob;
+    int vector_size;
     int *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
-    int prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    int prime_numbers[] = {2, 3, 5, 7, 9, 11, 13, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    int shift[] = {3, 5, 6, 5, 0, 6, 0, 6, 3, 3, 2, 6, 1};
     vector_size = atoi(argv[1]);
-    prob = atoi(argv[2]);
     
     int32_t v_size = (1024 * 1024 * vector_size)/sizeof(int);
     o_orderkey = (int*) aligned_alloc (64, (int) v_size/4 * sizeof (int));
@@ -430,11 +431,18 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand();
-    for (int i = 0; i < v_size; i++) {
-        if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
-        else l_orderkey[i] = rand();
-    }
+    //int32_t max = 0;
+    //for (int i = 0; i < v_size/4; i++) {
+	//o_orderkey[i] = i + rand();
+	//if (o_orderkey[i] > max) max = o_orderkey[i];
+    //}
+    //for (int i = 0; i < v_size; i++) {
+        //if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
+        //else l_orderkey[i] = max + rand();
+    //}
+
+    populate_vector (o_orderkey, v_size/4, argv[2]);
+    populate_vector (l_orderkey, v_size, argv[3]);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
@@ -453,8 +461,11 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = i;
+        shift_amounts[i] = shift[i];
     }
+
+    //for (int i = 0; i < hash_functions; i++) printf ("%d ", shift_amounts[i]);
+    //printf ("\n");
 
     for (int i = 0; i < VECTOR_SIZE; i++) {
 	    load_masks[i] = _mm512_int2mask (UINT16_MAX - (std::pow (2, VECTOR_SIZE-i)-1));
@@ -465,14 +476,14 @@ int main (__v32s argc, char const *argv[]){
 
     ORCS_tracing_start();
 
-    /*for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set_step (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
+    for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set_step (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
     for (int i = 0; i < v_size; i += VECTOR_SIZE) bloom_chk_step (&l_orderkey[i], v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
-    printf ("output_count = %lu\n", output_count);*/
-
-    output_count = 0;
-    for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
-    for (int i = 0; i < v_size; i += VECTOR_SIZE) bloom_chk (&l_orderkey[i], v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
     printf ("output_count = %lu\n", output_count);
+
+    //output_count = 0;
+    //bloom_set (o_orderkey, (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
+    //bloom_chk (l_orderkey, v_size, hash_functions, hash_function_factors, shift_amounts, bloom_filter, bloom_filter_size, output, &output_count);
+    //printf ("output_count = %lu\n", output_count);
     
     bloom_confirm (output, output_count, o_orderkey, v_size/4);
 

@@ -192,7 +192,7 @@ void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries,
     __mmask16 mask;
     int i, j;
 
-    for (i = 0; i < positives_size; i++){
+    for (i = 0; i < positives_size/16; i++){
         vector = _mm512_set1_epi32 (positives[i]);
         for (j = 0; j < entries_size; j += VECTOR_SIZE){
             entries_vec = _mm512_load_si512 (&entries[j]);
@@ -235,7 +235,8 @@ int main (__v32s argc, char const *argv[]){
     srand(time(NULL));
     int vector_size, prob;
     int *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
-    int prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    int prime_numbers[] = {2, 3, 5, 7, 9, 11, 13, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    int shift[] = {3, 5, 6, 5, 0, 6, 0, 6, 3, 3, 2, 6, 1};
     vector_size = atoi(argv[1]);
     prob = atoi(argv[2]);
     
@@ -245,11 +246,18 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    for (int i = 0; i < v_size/4; i++) o_orderkey[i] = rand() % (v_size/4)*2;
+    int32_t max = 0;
+    for (int i = 0; i < v_size/4; i++) {
+        o_orderkey[i] = i + (rand() % UINT32_MAX/10);
+        if (o_orderkey[i] > max) max = o_orderkey[i];
+    }
     for (int i = 0; i < v_size; i++) {
         if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
-        else l_orderkey[i] = rand();
+        else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
     }
+
+    //populate_vector (o_orderkey, v_size/4, argv[2]);
+    //populate_vector (l_orderkey, v_size, argv[3]);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
@@ -268,7 +276,7 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = i;
+        shift_amounts[i] = shift[i];
     }
 
     for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set_step (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
