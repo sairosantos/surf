@@ -419,11 +419,12 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_stop();
 
     srand(time(NULL));
-    int vector_size;
+    int vector_size, prob;
     int *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
     int prime_numbers[] = {2, 3, 5, 7, 9, 11, 13, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     int shift[] = {3, 5, 6, 5, 0, 6, 0, 6, 3, 3, 2, 6, 1};
     vector_size = atoi(argv[1]);
+    prob = atoi(argv[2]);
     
     int32_t v_size = (1024 * 1024 * vector_size)/sizeof(int);
     o_orderkey = (int*) aligned_alloc (64, (int) v_size/4 * sizeof (int));
@@ -431,18 +432,18 @@ int main (__v32s argc, char const *argv[]){
 
     std::cout << "v_size = " << v_size << "\n";
 
-    //int32_t max = 0;
-    //for (int i = 0; i < v_size/4; i++) {
-	//o_orderkey[i] = i + rand();
-	//if (o_orderkey[i] > max) max = o_orderkey[i];
-    //}
-    //for (int i = 0; i < v_size; i++) {
-        //if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
-        //else l_orderkey[i] = max + rand();
-    //}
+    int32_t max = 0;
+    for (int i = 0; i < v_size/4; i++) {
+        o_orderkey[i] = i + (rand() % UINT32_MAX/10);
+        if (o_orderkey[i] > max) max = o_orderkey[i];
+    }
+    for (int i = 0; i < v_size; i++) {
+        if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
+        else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
+    }
 
-    populate_vector (o_orderkey, v_size/4, argv[2]);
-    populate_vector (l_orderkey, v_size, argv[3]);
+    //populate_vector (o_orderkey, v_size/4, argv[2]);
+    //populate_vector (l_orderkey, v_size, argv[3]);
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;

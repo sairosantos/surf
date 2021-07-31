@@ -277,7 +277,8 @@ int main (__v32s argc, char const *argv[]){
     srand(time(NULL));
     uint32_t vector_size, prob;
     uint32_t *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
-    uint32_t prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    uint32_t prime_numbers[] = {2, 3, 5, 7, 9, 11, 13, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
+    uint32_t shift[] = {3, 5, 6, 5, 0, 6, 0, 6, 3, 3, 2, 6, 1};
     vector_size = atoi(argv[1]);
     prob = atoi(argv[2]);
     
@@ -287,15 +288,14 @@ int main (__v32s argc, char const *argv[]){
 
     //loadIntegerColumn (o_orderkey, (uint32_t) v_size/4, "/home/srsantos/Experiment/tpch-dbgen/data/orders.tbl", 1);
     //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
-
     uint32_t max = 0;
     for (int i = 0; i < v_size/4; i++) {
-        o_orderkey[i] = i + rand();
+        o_orderkey[i] = i + (rand() % UINT32_MAX/10);
         if (o_orderkey[i] > max) max = o_orderkey[i];
     }
     for (int i = 0; i < v_size; i++) {
         if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
-        else l_orderkey[i] = max + rand();
+        else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
     }
 
     size_t bloom_filter_size = 0;
@@ -314,7 +314,7 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = rand() % 7;
+        shift_amounts[i] = shift[i];
     }
 
     ORCS_tracing_start();
