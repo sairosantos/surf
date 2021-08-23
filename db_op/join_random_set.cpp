@@ -290,17 +290,19 @@ int main (__v32s argc, char const *argv[]){
     //loadIntegerColumn (l_orderkey, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 1);
     uint32_t max = 0;
     for (int i = 0; i < v_size/4; i++) {
-        o_orderkey[i] = i + (rand() % UINT32_MAX/10);
+        //o_orderkey[i] = i + (rand() % UINT32_MAX/10);
+	o_orderkey[i] = rand();
         if (o_orderkey[i] > max) max = o_orderkey[i];
     }
     for (int i = 0; i < v_size; i++) {
-        if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
-        else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
+        if (i % 10 < prob) l_orderkey[i] = o_orderkey[rand() % v_size/4];
+        //else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
+	else l_orderkey[i] = rand();
     }
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
-    double p = 0.0001;
+    double p = 0.000001;
     uint32_t output_count = 0;
     
     uint32_t *bloom_filter = bloom_create ((uint32_t) v_size/4, p, &bloom_filter_size, &hash_functions);
@@ -314,7 +316,7 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = shift[i];
+        shift_amounts[i] = shift[i % 13];
     }
 
     ORCS_tracing_start();

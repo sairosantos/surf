@@ -291,11 +291,14 @@ int main (__v32s argc, char const *argv[]){
     uint32_t max = 0;
     for (int i = 0; i < v_size/4; i++) {
         o_orderkey[i] = i + (rand() % UINT32_MAX/10);
+	//o_orderkey[i] = rand();
         if (o_orderkey[i] > max) max = o_orderkey[i];
     }
     for (int i = 0; i < v_size; i++) {
-        if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
+        if (i % 10 < prob) l_orderkey[i] = o_orderkey[rand() % v_size/4];
         else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
+	//else 
+	//l_orderkey[i] = rand();
     }
 
     size_t bloom_filter_size = 0;
@@ -321,6 +324,8 @@ int main (__v32s argc, char const *argv[]){
 
     bloom_set (o_orderkey, (uint32_t) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
     
+    //ORCS_tracing_stop();
+
     bloom_chk (l_orderkey, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
     std::cout << output_count << " positives.\n";
 
@@ -328,7 +333,7 @@ int main (__v32s argc, char const *argv[]){
     //bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
     //bloom_confirm_scalar (l_orderkey, v_size, o_orderkey, v_size/4);
 
-    ORCS_tracing_stop();
+    
 
     free (o_orderkey);
     free (l_orderkey);

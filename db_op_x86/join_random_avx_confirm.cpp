@@ -186,13 +186,14 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 }
 
 void bloom_confirm (int32_t* positives, size_t positives_size, int32_t* entries, size_t entries_size){
+    if (positives_size == 0) return;
     int32_t result = 0;
     int32_t count = 0;
     __m512i vector, entries_vec;
     __mmask16 mask;
     int i, j;
 
-    for (i = 0; i < positives_size/16; i++){
+    for (i = 0; i < 1000; i++){
         vector = _mm512_set1_epi32 (positives[i]);
         for (j = 0; j < entries_size; j += VECTOR_SIZE){
             entries_vec = _mm512_load_si512 (&entries[j]);
@@ -252,7 +253,7 @@ int main (__v32s argc, char const *argv[]){
         if (o_orderkey[i] > max) max = o_orderkey[i];
     }
     for (int i = 0; i < v_size; i++) {
-        if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
+        if (i % 10 < prob) l_orderkey[i] = o_orderkey[rand() % v_size/4];
         else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
     }
 
@@ -261,7 +262,7 @@ int main (__v32s argc, char const *argv[]){
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
-    double p = 0.0001;
+    double p = 0.000001;
     size_t output_count = 0;
     
     int *bloom_filter = bloom_create ((int) v_size/4, p, &bloom_filter_size, &hash_functions);
@@ -276,7 +277,7 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = shift[i];
+        shift_amounts[i] = shift[i%13];
     }
 
     for (int i = 0; i < v_size/4; i += VECTOR_SIZE) bloom_set_step (&o_orderkey[i], (int) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);

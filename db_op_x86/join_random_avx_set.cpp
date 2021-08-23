@@ -163,22 +163,24 @@ void bloom_set_step (int32_t* entries, int entries_size, int32_t* bloom_filter, 
 	__m512i fun = _mm512_set1_epi32(0);
 	uint32_t *aux_vec1 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
 	uint32_t *aux_vec2 = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
+
+	__m512i fac, shi, bit, bit_div, bit_mod;
 	
 	for (int j = 0; j < functions; j++) {
-        __m512i fac = _mm512_permutexvar_epi32(fun, facts);
-		__m512i shi = _mm512_permutexvar_epi32(fun, shift);
-        __m512i bit = _mm512_mullo_epi32 (key, fac);
+        	fac = _mm512_permutexvar_epi32(fun, facts);
+		shi = _mm512_permutexvar_epi32(fun, shift);
+        	bit = _mm512_mullo_epi32 (key, fac);
 		bit = _mm512_mullo_epi32 (bit, fac);
 		bit = _mm512_sllv_epi32 (bit, shi);
 		_mm512_storeu_si512	 (aux_vec1, bit);
 	    for (int i = 0; i < VECTOR_SIZE; i++) aux_vec1[i] %= bloom_filter_size;
 		bit = _mm512_loadu_si512(aux_vec1);
-		__m512i bit_div = _mm512_srli_epi32 (bit, 5);
-        __m512i bit_mod = _mm512_and_epi32 (bit, mask_31);
+		bit_div = _mm512_srli_epi32 (bit, 5);
+        	bit_mod = _mm512_and_epi32 (bit, mask_31);
 		bit_mod = _mm512_sllv_epi32 (mask_1, bit_mod);
 
 		_mm512_storeu_si512 (aux_vec1, bit_mod);
-	    _mm512_storeu_si512 (aux_vec2, bit_div);
+	        _mm512_storeu_si512 (aux_vec2, bit_div);
 		for (int i = 0; i < VECTOR_SIZE; i++) bloom_filter[aux_vec2[i]] = bloom_filter[aux_vec2[i]] | aux_vec1[i];
 
 		fun = _mm512_add_epi32 (mask_1, fun);
@@ -252,7 +254,7 @@ int main (__v32s argc, char const *argv[]){
         if (o_orderkey[i] > max) max = o_orderkey[i];
     }
     for (int i = 0; i < v_size; i++) {
-        if (i % 10 < prob) l_orderkey[i] = o_orderkey[i/4];
+        if (i % 10 < prob) l_orderkey[i] = o_orderkey[rand() % v_size/4];
         else l_orderkey[i] = max + (rand() % UINT32_MAX/10);
     }
 
@@ -261,7 +263,7 @@ int main (__v32s argc, char const *argv[]){
 
     size_t bloom_filter_size = 0;
     size_t hash_functions = 0;
-    double p = 0.0001;
+    double p = 0.000001;
     size_t output_count = 0;
     
     int *bloom_filter = bloom_create ((int) v_size/4, p, &bloom_filter_size, &hash_functions);
@@ -276,7 +278,7 @@ int main (__v32s argc, char const *argv[]){
 
     for (int i = 0; i < hash_functions; i++) {
         hash_function_factors[i] = prime_numbers[i % 15];
-        shift_amounts[i] = shift[i];
+        shift_amounts[i] = shift[i%13];
     }
 
     ORCS_tracing_start();
