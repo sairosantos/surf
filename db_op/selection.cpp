@@ -100,6 +100,8 @@ int main (__v32s argc, char const *argv[]){
         _vim2K_isltu (filter_vec, &vector1[i], &bitmap[i]);
     }
 
+    ORCS_tracing_stop();
+
     std::cout << filter_vec[VECTOR_SIZE-1];
     std::cout << vector1[v_size-1];
     std::cout << bitmap[v_size-1];

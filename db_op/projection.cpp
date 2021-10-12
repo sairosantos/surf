@@ -93,8 +93,9 @@ int main (__v32s argc, char const *argv[]){
     vector_size = atoi(argv[1]);
     
     __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
-    bitmap = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
-    _vim2K_imovu (1, bitmap);
+    bitmap = (uint32_t*) malloc (v_size * sizeof (uint32_t));
+
+    for (int i = 0; i < v_size; i += VECTOR_SIZE) _vim2K_imovu (1, &bitmap[i]);
 
     filter_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
     _vim2K_imovu (filter, filter_vec);
@@ -106,12 +107,15 @@ int main (__v32s argc, char const *argv[]){
     loadIntegerColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 4);
     loadIntegerColumn (vector2, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 5);
 
+    for (int i = 0; i < v_size; i += VECTOR_SIZE)  _vim2K_isltu (filter_vec, &vector1[i], &bitmap[i]);
+
     ORCS_tracing_start();
 
     for (int i = 0; i < v_size; i += VECTOR_SIZE){
-        _vim2K_isltu (filter_vec, &vector1[i], bitmap);
-        _vim2K_ilmku (&vector2[i], bitmap, &result[i]);
+        _vim2K_ilmku (&vector2[i], &bitmap[i], &result[i]);
     }
+
+    ORCS_tracing_stop();
 
     std::cout << vector1[v_size-1];
     std::cout << vector2[v_size-1];

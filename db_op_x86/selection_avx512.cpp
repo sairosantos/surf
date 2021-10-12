@@ -99,6 +99,7 @@ int main (int argc, char const *argv[]){
         vec_dst = _mm512_cmpgt_epi32_mask (vec_b, vec_a);
         _mm512_mask_store_epi32 (&bitmap[i], vec_dst, vec_b);
     }
+    ORCS_tracing_stop();
 
     std::cout << vector1[v_size-1] << " ";
     std::cout << bitmap[v_size-1] << " ";

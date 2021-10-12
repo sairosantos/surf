@@ -87,11 +87,13 @@ int main (int argc, char const *argv[]){
     int filter = 15;
     int *vector1, *vector2, *result;
     __m512i vec_a, vec_b, mask_0;
-    __mmask16 vec_dst;
+    __mmask16 *vec_dst;
 
     vector_size = atoi(argv[1]);
     
     int v_size = (1024 * 1024 * vector_size)/sizeof(int);
+
+    vec_dst = (__mmask16*) malloc (v_size/16 * sizeof (__mmask16));
 
     result = (int*) aligned_alloc (32, v_size * sizeof (int));
     vector1 = (int*) aligned_alloc (32, v_size * sizeof (int));
@@ -100,16 +102,22 @@ int main (int argc, char const *argv[]){
     loadIntegerColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 4);
     loadIntegerColumn (vector2, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 5);
 
-    ORCS_tracing_start();
+    //ORCS_tracing_start();
 
     mask_0 = _mm512_set1_epi32 (0);
     vec_a = _mm512_set1_epi32 (filter);
-    for (int i = 0; i < v_size; i += 16){
-        vec_b = _mm512_load_si512 ((__m512i *) &vector1[i]);
-        vec_dst = _mm512_cmpgt_epi32_mask (vec_b, vec_a);
-        vec_b =_mm512_mask_load_epi32 (mask_0, vec_dst, (__m512i *) &vector2[i]);
-        _mm512_store_epi32 ((__m512i *) &result[i], vec_b);
+
+    for (int i = 0; i < v_size/16; i++){
+	vec_b = _mm512_load_si512 ((__m512i *) &vector1[i*16]);
+        vec_dst[i] = _mm512_cmpgt_epi32_mask (vec_b, vec_a);
     }
+    
+    ORCS_tracing_start();
+    for (int i = 0; i < v_size/16; i++){
+        vec_b =_mm512_mask_load_epi32 (mask_0, vec_dst[i], (__m512i *) &vector2[i]);
+        _mm512_store_epi32 ((__m512i *) &result[i*16], vec_b);
+    }
+    ORCS_tracing_stop();
 
     std::cout << vector1[v_size-1] << " ";
     std::cout << vector2[v_size-1] << " ";
