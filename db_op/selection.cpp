@@ -15,8 +15,6 @@
 #include <vector>
 #include <string>
 
-#define VECTOR_SIZE 2048
-
 using namespace std;
 
 uint32_t castDate2Int (string date){
@@ -78,31 +76,50 @@ void populate_vector (uint32_t* vector, size_t v_size){
 int main (__v32s argc, char const *argv[]){
     ORCS_tracing_stop();
 
-    uint32_t vector_size;
+    uint32_t vector_size, VIMA_VECTOR_SIZE;
     uint32_t filter = 15;
     uint32_t *bitmap, *vector1, *filter_vec;
     vector_size = atoi(argv[1]);
+    VIMA_VECTOR_SIZE = atoi(argv[2]);
+
     
     __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
     bitmap = (uint32_t*) malloc (v_size * sizeof (uint32_t));
-    for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (1, &bitmap[j]);
 
-    filter_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
-    _vim2K_imovu (filter, filter_vec);
+    if (VIMA_VECTOR_SIZE == 2048){
+        for (int j = 0; j < v_size; j += VM2KI) _vim2K_imovu (1, &bitmap[j]);
+        filter_vec = (uint32_t*) malloc (VIMA_VECTOR_SIZE * sizeof (uint32_t));
+        _vim2K_imovu (filter, filter_vec);
+    }
+
+    if (VIMA_VECTOR_SIZE == 64){
+        for (int j = 0; j < v_size; j += VM64I) _vim64_imovu (1, &bitmap[j]);
+        filter_vec = (uint32_t*) malloc (VIMA_VECTOR_SIZE * sizeof (uint32_t));
+        _vim64_imovu (filter, filter_vec);
+    }
 
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     //srand (time(NULL));
 
     loadColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 4);
-    ORCS_tracing_start();
 
-    for (int i = 0; i < v_size; i += VECTOR_SIZE){
-        _vim2K_isltu (filter_vec, &vector1[i], &bitmap[i]);
+    if (VIMA_VECTOR_SIZE == 2048){
+        ORCS_tracing_start();
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE){
+            _vim2K_isltu (filter_vec, &vector1[i], &bitmap[i]);
+        }
+        ORCS_tracing_stop();
     }
 
-    ORCS_tracing_stop();
+    if (VIMA_VECTOR_SIZE == 64){
+        ORCS_tracing_start();
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE){
+            _vim64_isltu (filter_vec, &vector1[i], &bitmap[i]);
+        }
+        ORCS_tracing_stop();
+    }
 
-    std::cout << filter_vec[VECTOR_SIZE-1];
+    std::cout << filter_vec[VIMA_VECTOR_SIZE-1];
     std::cout << vector1[v_size-1];
     std::cout << bitmap[v_size-1];
 

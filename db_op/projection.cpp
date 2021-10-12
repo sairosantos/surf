@@ -14,8 +14,6 @@
 #include <string>
 #include <vector>
 
-#define VECTOR_SIZE 2048
-
 using namespace std;
 
 void __attribute__ ((noinline)) ORCS_tracing_start() {
@@ -86,19 +84,27 @@ void loadIntegerColumn (uint32_t* data_vector, uint32_t v_size, string file_path
 
 int main (__v32s argc, char const *argv[]){
     ORCS_tracing_stop();
-    uint32_t vector_size;
+    uint32_t vector_size, VIMA_VECTOR_SIZE;
     uint32_t filter = 15;
     uint32_t *bitmap, *vector1, *vector2, *filter_vec, *result;
     uint32_t prime_numbers[] = {23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     vector_size = atoi(argv[1]);
+    VIMA_VECTOR_SIZE = atoi(argv[2]);
     
     __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
     bitmap = (uint32_t*) malloc (v_size * sizeof (uint32_t));
 
-    for (int i = 0; i < v_size; i += VECTOR_SIZE) _vim2K_imovu (1, &bitmap[i]);
+    if (VIMA_VECTOR_SIZE == 2048){
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE) _vim2K_imovu (1, &bitmap[i]);
+        filter_vec = (uint32_t*) malloc (VIMA_VECTOR_SIZE * sizeof (uint32_t));
+        _vim2K_imovu (filter, filter_vec);
+    }
 
-    filter_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
-    _vim2K_imovu (filter, filter_vec);
+    if (VIMA_VECTOR_SIZE == 64){
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE) _vim64_imovu (1, &bitmap[i]);
+        filter_vec = (uint32_t*) malloc (VIMA_VECTOR_SIZE * sizeof (uint32_t));
+        _vim64_imovu (filter, filter_vec);
+    }
 
     result = (uint32_t*) malloc (v_size * sizeof (uint32_t));
     vector1 = (uint32_t*) malloc (v_size * sizeof (uint32_t));
@@ -107,20 +113,34 @@ int main (__v32s argc, char const *argv[]){
     loadIntegerColumn (vector1, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 4);
     loadIntegerColumn (vector2, v_size, "/home/srsantos/Experiment/tpch-dbgen/data/lineitem.tbl", 5);
 
-    for (int i = 0; i < v_size; i += VECTOR_SIZE)  _vim2K_isltu (filter_vec, &vector1[i], &bitmap[i]);
-
-    ORCS_tracing_start();
-
-    for (int i = 0; i < v_size; i += VECTOR_SIZE){
-        _vim2K_ilmku (&vector2[i], &bitmap[i], &result[i]);
+    if (VIMA_VECTOR_SIZE == 2048){
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE)  _vim2K_isltu (filter_vec, &vector1[i], &bitmap[i]);
     }
 
-    ORCS_tracing_stop();
+    if (VIMA_VECTOR_SIZE == 64){
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE)  _vim64_isltu (filter_vec, &vector1[i], &bitmap[i]);
+    }
+
+    if (VIMA_VECTOR_SIZE == 2048){
+        ORCS_tracing_start();
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE){
+            _vim2K_ilmku (&vector2[i], &bitmap[i], &result[i]);
+        }
+        ORCS_tracing_stop();
+    }
+
+    if (VIMA_VECTOR_SIZE == 64){
+        ORCS_tracing_start();
+        for (int i = 0; i < v_size; i += VIMA_VECTOR_SIZE){
+            _vim64_ilmku (&vector2[i], &bitmap[i], &result[i]);
+        }
+        ORCS_tracing_stop();
+    }
 
     std::cout << vector1[v_size-1];
     std::cout << vector2[v_size-1];
-    std::cout << bitmap[VECTOR_SIZE-1];
-    std::cout << filter_vec[VECTOR_SIZE-1];
+    std::cout << bitmap[VIMA_VECTOR_SIZE-1];
+    std::cout << filter_vec[VIMA_VECTOR_SIZE-1];
     std::cout << result[v_size-1];
 
     free (bitmap);

@@ -15,8 +15,6 @@
 #include <vector>
 #include <bitset>
 
-#define VECTOR_SIZE 2048
-
 using namespace std;
 
 void __attribute__ ((noinline)) ORCS_tracing_start() {
@@ -78,7 +76,7 @@ uint32_t* bloom_create (uint32_t n, float p, size_t *size, size_t *functions){
     return bf;
 }
 
-void bloom_set(uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, size_t bloom_filter_size, uint32_t* factors, uint32_t* shift_m, size_t functions){
+void bloom_set (uint32_t VECTOR_SIZE, uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, size_t bloom_filter_size, uint32_t* factors, uint32_t* shift_m, size_t functions){
     uint32_t *mask_1, *mask_31;
     uint32_t *shift_vec, *shift5_vec; 
     uint32_t *key, *aux;
@@ -97,27 +95,53 @@ void bloom_set(uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, s
     shift_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
     shift5_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
 
-    _vim2K_imovu (1, mask_1);
-    _vim2K_imovu (31, mask_31);
-    _vim2K_imovu (5, shift5_vec);
-    
-    for (int i = 0; i < entries_size; i += VECTOR_SIZE) {
-        _vim2K_ilmku (&entries[i], mask_1, key); //load new entries according to the mask.
-        _vim2K_irmku (fun, mask_1); //take the entries of the hash counters back to 0 if they were reset.
-        for (int j = 0; j < functions; j++){
-            _vim2K_icpyu (key, bit);
-            _vim2K_ipmtu (factors, fun, fac);
-            _vim2K_ipmtu (shift_m, fun, shift_vec);
-            _vim2K_imulu (bit, fac, bit); //first step of hash
-            _vim2K_isllu (bit, shift_vec, bit); //second step of hash
-            _vim2K_imodu (bit, bloom_filter_size, bit); //which bit within the bloom filter to set!
-            _vim2K_isrlu (bit, shift5_vec, bit_div); //which integer inside the bloom filter?
-            _vim2K_iandu (bit, mask_31, bit_mod); //which bit inside that integer?
-            _vim2K_isllu (mask_1, bit_mod, bit); //bits are positioned!
-            _vim2K_iscou (bit, bit_div, bloom_filter);
-            _vim2K_iaddu (fun, mask_1, fun);
-        }
-    };
+    if (VECTOR_SIZE == 2048){
+        _vim2K_imovu (1, mask_1);
+        _vim2K_imovu (31, mask_31);
+        _vim2K_imovu (5, shift5_vec);
+        
+        for (int i = 0; i < entries_size; i += VECTOR_SIZE) {
+            _vim2K_ilmku (&entries[i], mask_1, key); //load new entries according to the mask.
+            _vim2K_irmku (fun, mask_1); //take the entries of the hash counters back to 0 if they were reset.
+            for (int j = 0; j < functions; j++){
+                _vim2K_icpyu (key, bit);
+                _vim2K_ipmtu (factors, fun, fac);
+                _vim2K_ipmtu (shift_m, fun, shift_vec);
+                _vim2K_imulu (bit, fac, bit); //first step of hash
+                _vim2K_isllu (bit, shift_vec, bit); //second step of hash
+                _vim2K_imodu (bit, bloom_filter_size, bit); //which bit within the bloom filter to set!
+                _vim2K_isrlu (bit, shift5_vec, bit_div); //which integer inside the bloom filter?
+                _vim2K_iandu (bit, mask_31, bit_mod); //which bit inside that integer?
+                _vim2K_isllu (mask_1, bit_mod, bit); //bits are positioned!
+                _vim2K_iscou (bit, bit_div, bloom_filter);
+                _vim2K_iaddu (fun, mask_1, fun);
+            }
+        };
+    }
+
+    if (VECTOR_SIZE == 64){
+        _vim64_imovu (1, mask_1);
+        _vim64_imovu (31, mask_31);
+        _vim64_imovu (5, shift5_vec);
+        
+        for (int i = 0; i < entries_size; i += VECTOR_SIZE) {
+            _vim64_ilmku (&entries[i], mask_1, key); //load new entries according to the mask.
+            _vim64_irmku (fun, mask_1); //take the entries of the hash counters back to 0 if they were reset.
+            for (int j = 0; j < functions; j++){
+                _vim64_icpyu (key, bit);
+                _vim64_ipmtu (factors, fun, fac);
+                _vim64_ipmtu (shift_m, fun, shift_vec);
+                _vim64_imulu (bit, fac, bit); //first step of hash
+                _vim64_isllu (bit, shift_vec, bit); //second step of hash
+                _vim64_imodu (bit, bloom_filter_size, bit); //which bit within the bloom filter to set!
+                _vim64_isrlu (bit, shift5_vec, bit_div); //which integer inside the bloom filter?
+                _vim64_iandu (bit, mask_31, bit_mod); //which bit inside that integer?
+                _vim64_isllu (mask_1, bit_mod, bit); //bits are positioned!
+                _vim64_iscou (bit, bit_div, bloom_filter);
+                _vim64_iaddu (fun, mask_1, fun);
+            }
+        };
+    }
 
     free (key);
     free (aux);
@@ -132,7 +156,7 @@ void bloom_set(uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, s
     free (shift5_vec);
 }
 
-void bloom_chk(uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, size_t bloom_filter_size, uint32_t* factors, uint32_t* shift_m, size_t functions, uint32_t* output, uint32_t* output_count){
+void bloom_chk(uint32_t VECTOR_SIZE, uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, size_t bloom_filter_size, uint32_t* factors, uint32_t* shift_m, size_t functions, uint32_t* output, uint32_t* output_count){
     uint32_t *mask_k, *mask_kk; //mask that says which entries to continue calculating
     uint32_t *mask_0, *mask_1, *mask_31;
     uint32_t *shift_vec, *shift5_vec; 
@@ -155,46 +179,91 @@ void bloom_chk(uint32_t* entries, size_t entries_size, uint32_t* bloom_filter, s
     shift_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
     shift5_vec = (uint32_t*) malloc (VECTOR_SIZE * sizeof(uint32_t));
 
-    _vim2K_imovu (0, key);
-    _vim2K_imovu (1, mask_k);
-    _vim2K_imovu (0, mask_kk);
-    _vim2K_imovu (0, mask_0);
-    _vim2K_imovu (1, mask_1);
-    _vim2K_imovu (31, mask_31);
-    _vim2K_imovu (5, shift5_vec);
-    _vim2K_imovu (functions - 1, fun_max);
-    int i = 0;
-    *output_count = 0;
-    uint32_t j = VECTOR_SIZE;
+    if (VECTOR_SIZE == 2048){
+        _vim2K_imovu (0, key);
+        _vim2K_imovu (1, mask_k);
+        _vim2K_imovu (0, mask_kk);
+        _vim2K_imovu (0, mask_0);
+        _vim2K_imovu (1, mask_1);
+        _vim2K_imovu (31, mask_31);
+        _vim2K_imovu (5, shift5_vec);
+        _vim2K_imovu (functions - 1, fun_max);
+        int i = 0;
+        *output_count = 0;
+        uint32_t j = VECTOR_SIZE;
 
-    for (int i = 0; i <= entries_size; ) {
-        _vim2K_ilmku (&entries[i], mask_k, key); //load new entries according to the mask.
-        i += j;
-        _vim2K_irmku (fun, mask_k); //take the entries of the hash counters back to 0 if they were reset.
-        _vim2K_icpyu (key, bit);
-        _vim2K_ipmtu (factors, fun, fac);
-        _vim2K_ipmtu (shift_m, fun, shift_vec);
-        _vim2K_imulu (bit, fac, bit); //first step of hash
-        _vim2K_isllu (bit, shift_vec, bit); //second step of hash
-        _vim2K_imodu (bit, bloom_filter_size, bit); //which bit within the bloom filter to set!
-        _vim2K_isrlu (bit, shift5_vec, bit_div); //which integer inside the bloom filter?
-        _vim2K_iandu (bit, mask_31, bit_mod); //which bit inside that integer?
-        _vim2K_isllu (mask_1, bit_mod, bit); //bits are positioned!
-        _vim2K_igtru (bloom_filter, bit_div, bit_div); //we gather those integers from the bloom filter!
-        _vim2K_iandu (bit, bit_div, bit); //check if the bits are set
-        _vim2K_icmqu (bit, mask_0, mask_k); //if they're not, those entries don't go on
-        _vim2K_icmqu (fun, fun_max, mask_kk); //which entries have gotten to the last hash function?
-        
-        _vim2K_idptu (mask_kk, &j);
-        if (j > 0) {
-            _vim2K_ismku (key, mask_kk, &output[*output_count]);
-            *output_count += j;
-        }
+        for (int i = 0; i <= entries_size; ) {
+            _vim2K_ilmku (&entries[i], mask_k, key); //load new entries according to the mask.
+            i += j;
+            _vim2K_irmku (fun, mask_k); //take the entries of the hash counters back to 0 if they were reset.
+            _vim2K_icpyu (key, bit);
+            _vim2K_ipmtu (factors, fun, fac);
+            _vim2K_ipmtu (shift_m, fun, shift_vec);
+            _vim2K_imulu (bit, fac, bit); //first step of hash
+            _vim2K_isllu (bit, shift_vec, bit); //second step of hash
+            _vim2K_imodu (bit, bloom_filter_size, bit); //which bit within the bloom filter to set!
+            _vim2K_isrlu (bit, shift5_vec, bit_div); //which integer inside the bloom filter?
+            _vim2K_iandu (bit, mask_31, bit_mod); //which bit inside that integer?
+            _vim2K_isllu (mask_1, bit_mod, bit); //bits are positioned!
+            _vim2K_igtru (bloom_filter, bit_div, bit_div); //we gather those integers from the bloom filter!
+            _vim2K_iandu (bit, bit_div, bit); //check if the bits are set
+            _vim2K_icmqu (bit, mask_0, mask_k); //if they're not, those entries don't go on
+            _vim2K_icmqu (fun, fun_max, mask_kk); //which entries have gotten to the last hash function?
+            
+            _vim2K_idptu (mask_kk, &j);
+            if (j > 0) {
+                _vim2K_ismku (key, mask_kk, &output[*output_count]);
+                *output_count += j;
+            }
 
-        _vim2K_iorun (mask_k, mask_kk, mask_k); //which ones passed that also? those are ready and must be added to the result.
-        _vim2K_idptu (mask_k, &j);
-        _vim2K_iaddu (fun, mask_1, fun);
-    };
+            _vim2K_iorun (mask_k, mask_kk, mask_k); //which ones passed that also? those are ready and must be added to the result.
+            _vim2K_idptu (mask_k, &j);
+            _vim2K_iaddu (fun, mask_1, fun);
+        };
+    }
+
+    if (VECTOR_SIZE == 64){
+        _vim64_imovu (0, key);
+        _vim64_imovu (1, mask_k);
+        _vim64_imovu (0, mask_kk);
+        _vim64_imovu (0, mask_0);
+        _vim64_imovu (1, mask_1);
+        _vim64_imovu (31, mask_31);
+        _vim64_imovu (5, shift5_vec);
+        _vim64_imovu (functions - 1, fun_max);
+        int i = 0;
+        *output_count = 0;
+        uint32_t j = VECTOR_SIZE;
+
+        for (int i = 0; i <= entries_size; ) {
+            _vim64_ilmku (&entries[i], mask_k, key); //load new entries according to the mask.
+            i += j;
+            _vim64_irmku (fun, mask_k); //take the entries of the hash counters back to 0 if they were reset.
+            _vim64_icpyu (key, bit);
+            _vim64_ipmtu (factors, fun, fac);
+            _vim64_ipmtu (shift_m, fun, shift_vec);
+            _vim64_imulu (bit, fac, bit); //first step of hash
+            _vim64_isllu (bit, shift_vec, bit); //second step of hash
+            _vim64_imodu (bit, bloom_filter_size, bit); //which bit within the bloom filter to set!
+            _vim64_isrlu (bit, shift5_vec, bit_div); //which integer inside the bloom filter?
+            _vim64_iandu (bit, mask_31, bit_mod); //which bit inside that integer?
+            _vim64_isllu (mask_1, bit_mod, bit); //bits are positioned!
+            _vim64_igtru (bloom_filter, bit_div, bit_div); //we gather those integers from the bloom filter!
+            _vim64_iandu (bit, bit_div, bit); //check if the bits are set
+            _vim64_icmqu (bit, mask_0, mask_k); //if they're not, those entries don't go on
+            _vim64_icmqu (fun, fun_max, mask_kk); //which entries have gotten to the last hash function?
+            
+            _vim64_idptu (mask_kk, &j);
+            if (j > 0) {
+                _vim64_ismku (key, mask_kk, &output[*output_count]);
+                *output_count += j;
+            }
+
+            _vim64_iorun (mask_k, mask_kk, mask_k); //which ones passed that also? those are ready and must be added to the result.
+            _vim64_idptu (mask_k, &j);
+            _vim64_iaddu (fun, mask_1, fun);
+        };
+    }
     
     free (key);
     free (fun);
@@ -225,7 +294,7 @@ void bloom_confirm_scalar (uint32_t* positives, size_t positives_size, uint32_t*
     std::cout << result << " positivos reais.\n";
 }
 
-void bloom_confirm (uint32_t* positives, size_t positives_size, uint32_t* entries, size_t entries_size){
+void bloom_confirm (uint32_t VECTOR_SIZE, uint32_t* positives, size_t positives_size, uint32_t* entries, size_t entries_size){
     if (positives_size < VECTOR_SIZE) {
         bloom_confirm_scalar (positives, positives_size, entries, entries_size);
         return;
@@ -234,16 +303,35 @@ void bloom_confirm (uint32_t* positives, size_t positives_size, uint32_t* entrie
     uint32_t count = 0;
     uint32_t* vector = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
     uint32_t* check = (uint32_t*) malloc (VECTOR_SIZE * sizeof (uint32_t));
-    _vim2K_imovu (0, check);
-    for (int i = 0; i < positives_size; i++){
-        _vim2K_imovu (positives[i], vector);
-        for (int j = 0; j < entries_size; j += VECTOR_SIZE){
-            count = 0;
-            _vim2K_icmqu (vector, &entries[j], check);
-            _vim2K_idptu (check, &count);
-            if (count > 0){
-                result++;
-                break;
+    
+    if (VECTOR_SIZE == 2048){
+        _vim2K_imovu (0, check);
+        for (int i = 0; i < positives_size; i++){
+            _vim2K_imovu (positives[i], vector);
+            for (int j = 0; j < entries_size; j += VECTOR_SIZE){
+                count = 0;
+                _vim2K_icmqu (vector, &entries[j], check);
+                _vim2K_idptu (check, &count);
+                if (count > 0){
+                    result++;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (VECTOR_SIZE == 64){
+        _vim64_imovu (0, check);
+        for (int i = 0; i < positives_size; i++){
+            _vim64_imovu (positives[i], vector);
+            for (int j = 0; j < entries_size; j += VECTOR_SIZE){
+                count = 0;
+                _vim64_icmqu (vector, &entries[j], check);
+                _vim64_idptu (check, &count);
+                if (count > 0){
+                    result++;
+                    break;
+                }
             }
         }
     }
@@ -275,12 +363,13 @@ int main (__v32s argc, char const *argv[]){
     ORCS_tracing_stop();
 
     srand(time(NULL));
-    uint32_t vector_size, prob;
+    uint32_t vector_size, prob, VIMA_VECTOR_SIZE;
     uint32_t *bitmap, *o_orderkey, *l_orderkey, *filter_vec;
     uint32_t prime_numbers[] = {2, 3, 5, 7, 9, 11, 13, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97};
     uint32_t shift[] = {3, 5, 6, 5, 0, 6, 0, 6, 3, 3, 2, 6, 1};
     vector_size = atoi(argv[1]);
     prob = atoi(argv[2]);
+    VIMA_VECTOR_SIZE = atoi(argv[3]);
     
     __v32u v_size = (1024 * 1024 * vector_size)/sizeof(__v32u);
     o_orderkey = (uint32_t*) malloc ((uint32_t) v_size/4 * sizeof (uint32_t));
@@ -320,18 +409,16 @@ int main (__v32s argc, char const *argv[]){
 
     ORCS_tracing_start();
 
-    bloom_set (o_orderkey, (uint32_t) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
+    bloom_set (VIMA_VECTOR_SIZE, o_orderkey, (uint32_t) v_size/4, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions);
     
     ORCS_tracing_stop();
 
-    bloom_chk (l_orderkey, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
+    bloom_chk (VIMA_VECTOR_SIZE, l_orderkey, v_size, bloom_filter, bloom_filter_size, hash_function_factors, shift_amounts, hash_functions, output, &output_count);
     std::cout << output_count << " positives.\n";
 
-    //bloom_confirm (output, output_count, o_orderkey, v_size/4);
+    //bloom_confirm (VIMA_VECTOR_SIZE, output, output_count, o_orderkey, v_size/4);
     //bloom_confirm_scalar (output, output_count, o_orderkey, v_size/4);
     //bloom_confirm_scalar (l_orderkey, v_size, o_orderkey, v_size/4);
-
-    
 
     free (o_orderkey);
     free (l_orderkey);
